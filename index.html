@@ -42,6 +42,30 @@
             font-weight: bold;
         }
 
+        /* 新增：按鈕停用時的樣式 */
+        #start-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        /* 新增：進度條的外框容器 */
+        .progress-container {
+            width: 240px;
+            background-color: #333;
+            border-radius: 10px;
+            margin: 15px 0;
+            overflow: hidden;
+            display: none; /* 觸發下載時才顯示 */
+        }
+
+        /* 新增：進度條本體 */
+        .progress-bar {
+            width: 0%;
+            height: 8px;
+            background-color: #28a745;
+            transition: width 0.1s ease;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -52,10 +76,13 @@
 
 <div id="start-overlay">
     <h2 style="margin-bottom:10px;">MindAR 影片體驗</h2>
-    <p style="margin-bottom:25px;color:#ccc;">
-        點擊按鈕開始 AR
-    </p>
-    <button id="start-btn">開始 AR</button>
+    <p id="status-text" style="margin-bottom:15px;color:#ccc;">正在準備資源...</p>
+    
+    <div id="progress-container" class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+    </div>
+
+    <button id="start-btn" disabled>請稍候...</button>
 </div>
 
 <a-scene
@@ -72,8 +99,7 @@
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
-    <!-- 1. 【修改部分】資源載入改為 video，並預先靜音以符合瀏覽器規範 -->
-    <a-assets timeout="10000">
+    <a-assets timeout="15000">
         <video 
             id="videoTarget" 
             src="./1.mp4" 
@@ -82,7 +108,6 @@
             class="intersectable" 
             playsinline 
             webkit-playsinline 
-            muted
             crossorigin="anonymous">
         </video>
     </a-assets>
@@ -92,7 +117,6 @@
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- 2. 【修改部分】將 a-image 改為 a-video -->
     <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
         <a-video
             src="#videoTarget"
@@ -112,21 +136,70 @@ const startOverlay = document.querySelector("#start-overlay");
 const arTarget = document.querySelector("#ar-target");
 const videoEl = document.querySelector("#videoTarget");
 
+// 新增：獲取進度條相關 DOM
+const statusText = document.querySelector("#status-text");
+const progressContainer = document.querySelector("#progress-container");
+const progressBar = document.querySelector("#progress-bar");
+
 let sceneReady = false;
+let videoReady = false;
+
+// 檢查是否兩者都準備好
+const checkReady = () => {
+    if (sceneReady && videoReady) {
+        statusText.innerText = "資源準備就緒！";
+        startBtn.innerText = "開始 AR";
+        startBtn.disabled = false;
+    }
+};
 
 sceneEl.addEventListener("loaded", () => {
     sceneReady = true;
     console.log("Scene Loaded");
+    checkReady();
 });
+
+// 新增：監聽影片原生緩衝進度 (HTML5 Video progress event)
+videoEl.addEventListener("progress", () => {
+    progressContainer.style.display = "block";
+    if (videoEl.buffered.length > 0) {
+        const duration = videoEl.duration;
+        const bufferedEnd = videoEl.buffered.end(videoEl.buffered.length - 1);
+        
+        if (duration > 0) {
+            const percent = (bufferedEnd / duration) * 100;
+            progressBar.style.width = `${percent}%`;
+            statusText.innerText = `影片緩衝中: ${Math.round(percent)}%`;
+            
+            // 當下載進度大於 85% 時，通常足以流暢播放，解除鎖定
+            if (percent >= 85) {
+                videoReady = true;
+                checkReady();
+            }
+        }
+    }
+});
+
+// 新增：當瀏覽器認為可以流暢播放時觸發
+videoEl.addEventListener("canplaythrough", () => {
+    videoReady = true;
+    progressBar.style.width = "100%";
+    checkReady();
+});
+
 
 startBtn.addEventListener("click", () => {
     startOverlay.classList.add("hidden");
 
-    // 瀏覽器要求必須有使用者互動（點擊）才能觸發影片播放與解鎖音量
+    // 核心修改：點擊時「只預熱播放並解除靜音」，不要立刻下暫停(pause)命令，這樣能防止黑屏
+    // 讓影片在背景靜靜播放，直到偵測到圖卡
     videoEl.play().then(() => {
-        videoEl.pause(); // 先播放再暫停，用以啟用影片載入
-        videoEl.muted = false; // 解除靜音（若希望影片有聲音）
-    }).catch(err => console.log("Video init error:", err));
+        videoEl.muted = false; 
+    }).catch(err => {
+        console.log("Video init error, retry with muted:", err);
+        videoEl.muted = true; // 如果被部分嚴格瀏覽器阻擋，降級為靜音播放
+        videoEl.play();
+    });
 
     const tryStart = () => {
         const mindarSystem = sceneEl.systems["mindar-image-system"];
@@ -139,14 +212,10 @@ startBtn.addEventListener("click", () => {
         }
     };
 
-    if (sceneReady) {
-        tryStart();
-    } else {
-        sceneEl.addEventListener("loaded", tryStart, { once: true });
-    }
+    tryStart();
 });
 
-// 3. 【新增部分】偵測圖卡，自動開關影片
+// 偵測圖卡，自動開關影片
 arTarget.addEventListener("targetFound", () => {
     console.log("找到圖卡，播放影片");
     videoEl.play();
