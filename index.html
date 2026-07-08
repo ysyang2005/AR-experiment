@@ -42,26 +42,35 @@
             font-weight: bold;
         }
 
-        /* 新增：按鈕停用時的樣式 */
-        #start-btn:disabled {
-            background: #555;
-            cursor: not-allowed;
+        /* 影片緩衝提示（預設隱藏） */
+        #buffer-box {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 15px 25px;
+            border-radius: 10px;
+            z-index: 8888;
+            color: white;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            font-family: sans-serif;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
-        /* 新增：進度條的外框容器 */
         .progress-container {
-            width: 240px;
+            width: 200px;
             background-color: #333;
             border-radius: 10px;
-            margin: 15px 0;
+            margin-top: 10px;
             overflow: hidden;
-            display: none; /* 觸發下載時才顯示 */
         }
 
-        /* 新增：進度條本體 */
         .progress-bar {
             width: 0%;
-            height: 8px;
+            height: 6px;
             background-color: #28a745;
             transition: width 0.1s ease;
         }
@@ -76,13 +85,15 @@
 
 <div id="start-overlay">
     <h2 style="margin-bottom:10px;">MindAR 影片體驗</h2>
-    <p id="status-text" style="margin-bottom:15px;color:#ccc;">正在準備資源...</p>
-    
-    <div id="progress-container" class="progress-container">
+    <p style="margin-bottom:20px;color:#ccc;">點擊按鈕開啟相機並載入體驗</p>
+    <button id="start-btn">開始 AR</button>
+</div>
+
+<div id="buffer-box">
+    <span id="status-text">影片載入中...</span>
+    <div class="progress-container">
         <div id="progress-bar" class="progress-bar"></div>
     </div>
-
-    <button id="start-btn" disabled>請稍候...</button>
 </div>
 
 <a-scene
@@ -99,7 +110,7 @@
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
-    <a-assets timeout="15000">
+    <a-assets timeout="20000">
         <video 
             id="videoTarget" 
             src="./1.mp4" 
@@ -136,32 +147,15 @@ const startOverlay = document.querySelector("#start-overlay");
 const arTarget = document.querySelector("#ar-target");
 const videoEl = document.querySelector("#videoTarget");
 
-// 新增：獲取進度條相關 DOM
+// 進度條 DOM
+const bufferBox = document.querySelector("#buffer-box");
 const statusText = document.querySelector("#status-text");
-const progressContainer = document.querySelector("#progress-container");
 const progressBar = document.querySelector("#progress-bar");
 
-let sceneReady = false;
-let videoReady = false;
+let isVideoLoaded = false;
 
-// 檢查是否兩者都準備好
-const checkReady = () => {
-    if (sceneReady && videoReady) {
-        statusText.innerText = "資源準備就緒！";
-        startBtn.innerText = "開始 AR";
-        startBtn.disabled = false;
-    }
-};
-
-sceneEl.addEventListener("loaded", () => {
-    sceneReady = true;
-    console.log("Scene Loaded");
-    checkReady();
-});
-
-// 新增：監聽影片原生緩衝進度 (HTML5 Video progress event)
+// 監聽影片緩衝進度
 videoEl.addEventListener("progress", () => {
-    progressContainer.style.display = "block";
     if (videoEl.buffered.length > 0) {
         const duration = videoEl.duration;
         const bufferedEnd = videoEl.buffered.end(videoEl.buffered.length - 1);
@@ -169,38 +163,53 @@ videoEl.addEventListener("progress", () => {
         if (duration > 0) {
             const percent = (bufferedEnd / duration) * 100;
             progressBar.style.width = `${percent}%`;
-            statusText.innerText = `影片緩衝中: ${Math.round(percent)}%`;
+            statusText.innerText = `影片下載中: ${Math.round(percent)}%`;
             
-            // 當下載進度大於 85% 時，通常足以流暢播放，解除鎖定
-            if (percent >= 85) {
-                videoReady = true;
-                checkReady();
+            if (percent >= 95) {
+                isVideoLoaded = true;
+                hideBufferUI();
             }
         }
     }
 });
 
-// 新增：當瀏覽器認為可以流暢播放時觸發
+// 影片完全可以流暢播放時
 videoEl.addEventListener("canplaythrough", () => {
-    videoReady = true;
-    progressBar.style.width = "100%";
-    checkReady();
+    isVideoLoaded = true;
+    hideBufferUI();
 });
 
+function hideBufferUI() {
+    progressBar.style.width = "100%";
+    statusText.innerText = "影片準備就緒！";
+    setTimeout(() => {
+        if(isVideoLoaded) bufferBox.style.display = "none";
+    }, 1500);
+}
 
+// 使用者點擊「開始 AR」
 startBtn.addEventListener("click", () => {
+    // 1. 隱藏大遮罩
     startOverlay.classList.add("hidden");
 
-    // 核心修改：點擊時「只預熱播放並解除靜音」，不要立刻下暫停(pause)命令，這樣能防止黑屏
-    // 讓影片在背景靜靜播放，直到偵測到圖卡
+    // 2. 如果影片還沒好，在畫面下方默默顯示小進度條，不干擾相機開啟
+    if (!isVideoLoaded) {
+        bufferBox.style.display = "flex";
+    }
+
+    // 3. 【最核心】利用這次點擊手勢，立刻向瀏覽器申請強行載入並播放
+    // 許多手機瀏覽器規定：沒有這一步，影片的 progress 事件永遠不會觸發（進度永遠是 0）
+    videoEl.load(); 
     videoEl.play().then(() => {
-        videoEl.muted = false; 
+        // 成功播放後，先讓它在背景跑
+        videoEl.muted = false;
     }).catch(err => {
-        console.log("Video init error, retry with muted:", err);
-        videoEl.muted = true; // 如果被部分嚴格瀏覽器阻擋，降級為靜音播放
+        console.log("嘗試解鎖音訊失敗，退回靜音播放機制:", err);
+        videoEl.muted = true;
         videoEl.play();
     });
 
+    // 4. 啟動 AR 相機系統
     const tryStart = () => {
         const mindarSystem = sceneEl.systems["mindar-image-system"];
         if (mindarSystem) {
@@ -215,14 +224,15 @@ startBtn.addEventListener("click", () => {
     tryStart();
 });
 
-// 偵測圖卡，自動開關影片
+// 偵測圖卡邏輯
 arTarget.addEventListener("targetFound", () => {
-    console.log("找到圖卡，播放影片");
+    console.log("找到圖卡");
+    // 確保找到圖卡時，如果剛好加載完，就直接放出來
     videoEl.play();
 });
 
 arTarget.addEventListener("targetLost", () => {
-    console.log("圖卡遺失，暫停影片");
+    console.log("圖卡遺失");
     videoEl.pause();
 });
 </script>
