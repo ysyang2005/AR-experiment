@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MindAR Image Experience</title>
+    <title>MindAR Video Experience</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
@@ -51,7 +51,7 @@
 <body>
 
 <div id="start-overlay">
-    <h2 style="margin-bottom:10px;">MindAR 圖片體驗</h2>
+    <h2 style="margin-bottom:10px;">MindAR 影片體驗</h2>
     <p style="margin-bottom:25px;color:#ccc;">
         點擊按鈕開始 AR
     </p>
@@ -72,41 +72,35 @@
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
+    <!-- 1. 【修改部分】資源載入改為 video，並預先靜音以符合瀏覽器規範 -->
     <a-assets timeout="10000">
-        <img
-            id="imageTarget"
-            src="./1.jpg"
+        <video 
+            id="videoTarget" 
+            src="./1.mp4" 
+            preload="auto" 
+            loop="true" 
+            class="intersectable" 
+            playsinline 
+            webkit-playsinline 
+            muted
             crossorigin="anonymous">
+        </video>
     </a-assets>
 
-    <a-light
-        type="ambient"
-        intensity="3"
-        color="#ffffff">
-    </a-light>
+    <a-light type="ambient" intensity="3" color="#ffffff"></a-light>
+    <a-light type="directional" intensity="2" position="0 5 0" color="#ffffff"></a-light>
 
-    <a-light
-        type="directional"
-        intensity="2"
-        position="0 5 0"
-        color="#ffffff">
-    </a-light>
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-camera
-        position="0 0 0"
-        look-controls="enabled: false">
-    </a-camera>
-
-    <a-entity mindar-image-target="targetIndex: 0">
-
-        <a-image
-            src="#imageTarget"
+    <!-- 2. 【修改部分】將 a-image 改為 a-video -->
+    <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+        <a-video
+            src="#videoTarget"
             width="1"
             height="0.5625"
             position="0 0 0"
             rotation="0 0 0">
-        </a-image>
-
+        </a-video>
     </a-entity>
 
 </a-scene>
@@ -115,6 +109,8 @@
 const sceneEl = document.querySelector("#ar-scene");
 const startBtn = document.querySelector("#start-btn");
 const startOverlay = document.querySelector("#start-overlay");
+const arTarget = document.querySelector("#ar-target");
+const videoEl = document.querySelector("#videoTarget");
 
 let sceneReady = false;
 
@@ -124,13 +120,16 @@ sceneEl.addEventListener("loaded", () => {
 });
 
 startBtn.addEventListener("click", () => {
-
     startOverlay.classList.add("hidden");
 
+    // 瀏覽器要求必須有使用者互動（點擊）才能觸發影片播放與解鎖音量
+    videoEl.play().then(() => {
+        videoEl.pause(); // 先播放再暫停，用以啟用影片載入
+        videoEl.muted = false; // 解除靜音（若希望影片有聲音）
+    }).catch(err => console.log("Video init error:", err));
+
     const tryStart = () => {
-
         const mindarSystem = sceneEl.systems["mindar-image-system"];
-
         if (mindarSystem) {
             console.log("Start MindAR");
             mindarSystem.start();
@@ -138,7 +137,6 @@ startBtn.addEventListener("click", () => {
             console.log("Waiting MindAR...");
             setTimeout(tryStart, 300);
         }
-
     };
 
     if (sceneReady) {
@@ -146,7 +144,17 @@ startBtn.addEventListener("click", () => {
     } else {
         sceneEl.addEventListener("loaded", tryStart, { once: true });
     }
+});
 
+// 3. 【新增部分】偵測圖卡，自動開關影片
+arTarget.addEventListener("targetFound", () => {
+    console.log("找到圖卡，播放影片");
+    videoEl.play();
+});
+
+arTarget.addEventListener("targetLost", () => {
+    console.log("圖卡遺失，暫停影片");
+    videoEl.pause();
 });
 </script>
 
