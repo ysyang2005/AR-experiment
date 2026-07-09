@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>時空信物 - 戀愛巷之謎</title>
 
-    <!-- 載入 A-Frame 與 MindAR -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
@@ -15,7 +14,6 @@
             --pink-love: #df6c85;
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
-            /* 定義 AR 區域的高度，剩下的會留給對話框 */
             --ar-height: 55vh; 
         }
 
@@ -31,7 +29,7 @@
             z-index: 10;
         }
 
-        /* --- AR 容器：強制將相機與渲染畫面限縮在上半部分 --- */
+        /* --- AR 容器：修正 display: none 導致的相機初始化失敗 --- */
         .ar-container {
             position: absolute;
             top: 0;
@@ -39,8 +37,15 @@
             width: 100%;
             height: var(--ar-height);
             overflow: hidden;
-            display: none; /* 預設隱藏，走到 AR 劇情才開啟 */
+            /* 改用 visibility 與 z-index 控制隱藏，確保不影響相機元件寬高計算 */
+            visibility: hidden; 
+            z-index: 1;
             background: #000;
+        }
+
+        .ar-container.active {
+            visibility: visible;
+            z-index: 5;
         }
 
         /* 強制蓋過 MindAR/A-Frame 的全螢幕樣式 */
@@ -55,12 +60,12 @@
             object-fit: cover !important;
         }
 
-        /* 掃描提示框框（可選） */
+        /* 掃描提示框 */
         .ar-overlay {
             position: absolute;
             top: 50%; left: 50%;
-            transform: translate(-25%, -50%);
-            width: 50%; height: 50%;
+            transform: translate(-50%, -50%); /* 修正原代碼位移偏差 */
+            width: 60%; height: 50%;
             border: 2px dashed rgba(223, 108, 133, 0.6);
             border-radius: 10px;
             pointer-events: none;
@@ -84,7 +89,6 @@
 </head>
 <body>
 
-<!-- AR 視訊區域（包在一個自訂容器內） -->
 <div id="ar-wrapper" class="ar-container">
     <div id="scan-guide" class="ar-overlay"></div>
     
@@ -103,14 +107,12 @@
         device-orientation-permission-ui="enabled: false">
 
         <a-assets timeout="10000">
-            <!-- 這裡放你掃描成功後想顯現的意外收穫（例如一張驚喜圖片或特效） -->
             <img id="surpriseImage" src="./1.jpg" crossorigin="anonymous">
         </a-assets>
 
         <a-light type="ambient" intensity="3" color="#ffffff"></a-light>
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <!-- 假設 owl_target 是你在 targets.mind 裡面打包的第一個目標物（貓頭鷹） -->
         <a-entity mindar-image-target="targetIndex: 0">
             <a-image
                 src="#surpriseImage"
@@ -122,7 +124,6 @@
     </a-scene>
 </div>
 
-<!-- 遊戲主要 UI -->
 <div id="game-container">
     <div class="vn-panel" onclick="nextPage()">
         <div id="name-box" class="name-box">艾蓮娜</div>
@@ -132,17 +133,18 @@
 </div>
 
 <script>
-    // 劇情台詞陣列，第三頁植入 AR 掃描需求
     const storyNodes = [
         { name: "艾蓮娜", text: "這裡為什麼叫戀愛巷？" },
         { name: "主角", text: "傳說中是因為..." },
-        { name: "系統", text: "請掃描門口的貓頭鷹，看看有什麼意外收穫。", isARPage: true }
+        { name: "系統", text: "請掃描門口的貓頭鷹，看看有什麼意外收穫。", isARPage: true },
+        { name: "系統", text: "成功解鎖！原來這背後隱藏著一段回憶..." }
     ];
 
     let currentIndex = 0;
     let isTyping = false;
     let typeTimer = null;
     let sceneReady = false;
+    let arStarted = false; // 防重複啟動鎖
 
     const dialogueBox = document.getElementById('dialogue');
     const nameBox = document.getElementById('name-box');
@@ -151,10 +153,9 @@
     const sceneEl = document.querySelector("#ar-scene");
     const clickHint = document.getElementById('click-hint');
 
-    // 監聽 AR 場景載入
     sceneEl.addEventListener("loaded", () => {
         sceneReady = true;
-        console.log("AR Scene Loaded");
+        console.log("AR 場景載入完成");
     });
 
     function drawText(node) {
@@ -164,13 +165,11 @@
         let i = 0;
         clearInterval(typeTimer);
         
-        // 如果是 AR 頁面，觸發相機開啟機制
         if (node.isARPage) {
             setupARView();
         } else {
-            // 非 AR 頁面則隱藏相機與背景
-            arWrapper.style.display = 'none';
-            scanGuide.style.display = 'none';
+            // 切回非 AR 劇情時，停止相機以節省效能並隱藏
+            stopARView();
             clickHint.style.display = 'block';
         }
 
@@ -185,21 +184,25 @@
         }, 80);
     }
 
-    // 啟動 AR 畫面並重新定位
     function setupARView() {
-        // 顯示上半部的 AR 容器
-        arWrapper.style.display = 'block';
+        arWrapper.classList.add('active');
         scanGuide.style.display = 'block';
-        
-        // 在 AR 掃描階段，可以隱藏「點擊繼續」提示，引導使用者去掃描
         clickHint.style.display = 'none'; 
 
         const tryStartAR = () => {
             const mindarSystem = sceneEl.systems["mindar-image-system"];
-            if (mindarSystem) {
-                console.log("Start MindAR Camera");
-                mindarSystem.start();
-            } else {
+            if (mindarSystem && !arStarted) {
+                console.log("正在嘗試啟動 MindAR 相機...");
+                mindarSystem.start()
+                    .then(() => {
+                        arStarted = true;
+                        console.log("相機成功開啟");
+                    })
+                    .catch((err) => {
+                        console.error("相機開啟失敗，請確認 HTTPS 或權限:", err);
+                        alert("無法開啟相機。請確保在 HTTPS 環境下執行並已授予相機權限。");
+                    });
+            } else if (!mindarSystem) {
                 setTimeout(tryStartAR, 300);
             }
         };
@@ -211,11 +214,21 @@
         }
     }
 
+    function stopARView() {
+        arWrapper.classList.remove('active');
+        scanGuide.style.display = 'none';
+        const mindarSystem = sceneEl.systems["mindar-image-system"];
+        if (mindarSystem && arStarted) {
+            mindarSystem.stop();
+            arStarted = false;
+            console.log("相機已關閉");
+        }
+    }
+
     function nextPage() {
-        // 如果是 AR 頁面，且你希望使用者「一定要掃描成功才能前進」，可以在這裡鎖死點擊
+        // 如果當前是 AR 頁面，且尚未識別成功，鎖定不讓前進
         if (storyNodes[currentIndex].isARPage && !isTyping) {
             console.log("當前為 AR 掃描任務，請對準貓頭鷹目標。");
-            // 如果你想允許使用者跳過，就把下面這行 return 註解掉
             return; 
         }
 
@@ -228,19 +241,22 @@
             if (currentIndex < storyNodes.length) {
                 drawText(storyNodes[currentIndex]);
             } else {
-                alert("劇情繼續展開中...");
+                alert("故事未完待續...");
             }
         }
     }
 
-    // 監聽 MindAR 成功識別目標物的事件
+    // 監聽識別成功
     sceneEl.addEventListener("targetFound", event => {
-        console.log("找到貓頭鷹了！");
-        // 可以在這裡解鎖下一頁，或者自動跳到下一段劇情
-        // clickHint.style.display = 'block'; 
+        console.log("識別成功：找到貓頭鷹了！");
+        // 自動解鎖並前進到下一段劇情
+        if (storyNodes[currentIndex].isARPage) {
+            // 這裡直接強制進入下一頁
+            currentIndex++;
+            drawText(storyNodes[currentIndex]);
+        }
     });
 
-    // 初始化
     window.onload = () => drawText(storyNodes[0]);
 </script>
 </body>
