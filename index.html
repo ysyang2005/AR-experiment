@@ -105,7 +105,15 @@
     device-orientation-permission-ui="enabled: false">
 
     <a-assets timeout="10000">
-        <img id="imageTarget" src="./1.jpg" crossorigin="anonymous">
+        <video 
+            id="videoTarget" 
+            src="./1.mp4" 
+            preload="auto" 
+            crossorigin="anonymous" 
+            loop="true" 
+            playsinline 
+            webkit-playsinline>
+        </video>
     </a-assets>
 
     <a-light type="ambient" intensity="3" color="#ffffff"></a-light>
@@ -114,13 +122,13 @@
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-        <a-image
-            src="#imageTarget"
+        <a-video
+            src="#videoTarget"
             width="1"
             height="0.5625"
             position="0 0 0"
             rotation="0 0 0">
-        </a-image>
+        </a-video>
     </a-entity>
 </a-scene>
 
@@ -140,6 +148,8 @@ const nextBtn = document.querySelector("#next-btn");
 const startOverlay = document.querySelector("#start-overlay");
 const storyContainer = document.querySelector("#story-container");
 const dialogueBox = document.querySelector("#dialogue-box");
+// 獲取視訊 DOM 元素
+const videoEl = document.querySelector("#videoTarget");
 
 let sceneReady = false;
 let currentStep = 0; 
@@ -214,11 +224,26 @@ function stopCamera() {
 arTargetEl.addEventListener("targetFound", () => {
     console.log("Target Found!");
     
+    // 識別成功時，自動播放視訊
+    if (videoEl) {
+        videoEl.play().catch((err) => {
+            console.log("視訊播放被瀏覽器攔截，嘗試靜音播放:", err);
+            videoEl.muted = true; // 如果因為音訊權限被攔截，則靜音播放
+            videoEl.play();
+        });
+    }
+    
     // 只有在處於「需要 AR」的劇情步驟時，識別成功才會觸發下一步
     if (scriptStages[currentStep].isARRequired) {
-        // 這裡可以選擇：A. 立即跳到下一頁，或是 B. 彈出「下一步」按鈕讓玩家看完 AR 再點
-        // 這裡採用 B 方案（彈出下一步按鈕），體驗會更從容：
         nextBtn.classList.remove("hidden");
+    }
+});
+
+// 監聽 MindAR 「目標丟失」事件（可選：離開目標時暫停視訊）
+arTargetEl.addEventListener("targetLost", () => {
+    console.log("Target Lost");
+    if (videoEl) {
+        videoEl.pause();
     }
 });
 
@@ -226,6 +251,9 @@ arTargetEl.addEventListener("targetFound", () => {
 nextBtn.addEventListener("click", () => {
     // 如果剛才是在 AR 掃描狀態，點擊下一步代表要「結束 AR 檢視」回到純劇情了
     if (scriptStages[currentStep].isARRequired) {
+        if (videoEl) {
+            videoEl.pause(); // 停止視訊播放
+        }
         stopCamera();
     }
 
