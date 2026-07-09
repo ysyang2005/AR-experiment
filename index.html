@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MindAR Video Experience</title>
+    <title>MindAR Hybrid UI Experience</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
@@ -13,69 +13,91 @@
             margin: 0;
             overflow: hidden;
             background: #000;
-        }
-
-        #start-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,.9);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            color: #fff;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        #start-btn {
-            padding: 14px 28px;
-            font-size: 18px;
-            border: none;
-            border-radius: 8px;
-            background: #007bff;
-            color: #fff;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        #buffer-box {
+        /* 1. 開始 AR 的覆蓋層 */
+        #start-overlay {
             position: fixed;
-            bottom: 30px;
-            left: 50%;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,.9);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; color: #fff;
+        }
+        #start-btn {
+            padding: 14px 28px; font-size: 18px; border: none; border-radius: 8px;
+            background: #007bff; color: #fff; cursor: pointer; font-weight: bold;
+        }
+
+        /* 2. 影片緩衝提示 */
+        #buffer-box {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 10px;
+            z-index: 8888; color: white; display: none; flex-direction: column; align-items: center;
+        }
+        .progress-container { width: 200px; background-color: #333; border-radius: 10px; margin-top: 10px; overflow: hidden; }
+        .progress-bar { width: 0%; height: 6px; background-color: #28a745; transition: width 0.1s ease; }
+
+        /* =========================================================
+           【核心新增】3. 專屬的 AR HTML UI 設計區域
+           ========================================================= */
+        #ar-html-ui {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; /* 穿透層：確保不會擋住底層 AR 的相機渲染 */
+            z-index: 5555;
+            display: none; /* 預設完全隱藏，只有識別到圖卡時才會顯現 */
+        }
+
+        /* 弧形文字樣式（透過 CSS clip-path 或簡單弧形排版，這裡提供網頁標準精美設計） */
+        .arc-text-container {
+            position: absolute;
+            top: 15%; left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            padding: 15px 25px;
-            border-radius: 10px;
-            z-index: 8888;
-            color: white;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            font-family: sans-serif;
+            width: 80%;
+            text-align: center;
+            pointer-events: auto; /* 恢復可點擊/互動 */
+        }
+        
+        .arc-text {
+            font-size: 26px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8), 0 0 20px #ffb703; /* 加上發光霓虹效果 */
+            letter-spacing: 2px;
+            display: inline-block;
+            /* 如果想做真正的網頁圓弧，可以使用以下 CSS 曲線效果，或者直接當作精美頂部標題 */
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 20px;
+            border-radius: 50px;
         }
 
-        .progress-container {
-            width: 200px;
-            background-color: #333;
-            border-radius: 10px;
-            margin-top: 10px;
-            overflow: hidden;
+        /* 底部跳轉文字框 */
+        .bottom-link-box {
+            position: absolute;
+            bottom: 12%; left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            max-width: 340px;
+            background: #ff2442; /* 小紅書經典紅 */
+            color: #ffffff;
+            text-align: center;
+            padding: 14px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 36, 66, 0.4);
+            cursor: pointer;
+            pointer-events: auto; /* 恢復可點擊 */
+            transition: transform 0.2s ease;
+            text-decoration: none; /* 移除超連結底線 */
+            display: block;
+        }
+        .bottom-link-box:active {
+            transform: translateX(-50%) scale(0.95); /* 按壓視覺反饋 */
         }
 
-        .progress-bar {
-            width: 0%;
-            height: 6px;
-            background-color: #28a745;
-            transition: width 0.1s ease;
-        }
-
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
     </style>
 </head>
 
@@ -92,6 +114,16 @@
     <div class="progress-container">
         <div id="progress-bar" class="progress-bar"></div>
     </div>
+</div>
+
+<div id="ar-html-ui">
+    <div class="arc-text-container">
+        <div class="arc-text">歡迎來到新濠天地</div>
+    </div>
+
+    <a href="https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend" class="bottom-link-box">
+        點擊進入，點擊跳轉小紅書
+    </a>
 </div>
 
 <a-scene
@@ -118,23 +150,14 @@
             muted
             crossorigin="anonymous">
         </video>
-        <img id="welcomeTextImg" src="https://placehold.co/512x128/000000/ffffff/png?text=Welcome+to+City+of+Dreams">
     </a-assets>
 
     <a-light type="ambient" intensity="3" color="#ffffff"></a-light>
     <a-light type="directional" intensity="2" position="0 5 0" color="#ffffff"></a-light>
 
-    <a-camera position="0 0 0" look-controls="enabled: false">
-        <a-cursor 
-            id="cursor"
-            animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
-            animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
-            raycaster="objects: .clickable">
-        </a-cursor>
-    </a-camera>
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-        
         <a-video
             id="main-video"
             src="#videoTarget"
@@ -143,33 +166,6 @@
             position="0 0 0"
             rotation="0 0 0">
         </a-video>
-
-        <a-curvedimage 
-            src="#welcomeTextImg" 
-            radius="0.8" 
-            theta-length="60" 
-            theta-start="150"
-            height="0.2" 
-            position="0 0.45 -0.2"
-            rotation="0 0 0">
-        </a-curvedimage>
-
-        <a-entity 
-            id="click-btn"
-            class="clickable"
-            position="0 -0.4 0.05"
-            geometry="primitive: plane; width: 0.8; height: 0.15"
-            material="color: #ff2442; opacity: 0.9; shader: flat">
-            
-            <a-text 
-                value="點擊進入 Go to Xiaohongshu" 
-                align="center" 
-                color="#ffffff" 
-                width="1.5"
-                position="0 0 0.01">
-            </a-text>
-        </a-entity>
-
     </a-entity>
 
 </a-scene>
@@ -184,11 +180,13 @@ const videoEl = document.querySelector("#videoTarget");
 const bufferBox = document.querySelector("#buffer-box");
 const statusText = document.querySelector("#status-text");
 const progressBar = document.querySelector("#progress-bar");
-const clickBtn = document.querySelector("#click-btn");
+
+// 獲取我們的 HTML UI 容器
+const arHtmlUi = document.querySelector("#ar-html-ui");
 
 let hasUserInteracted = false;
 
-// 監聽影片下載進度條
+// 影片下載緩衝進度
 videoEl.addEventListener("progress", () => {
     if (videoEl.buffered.length > 0) {
         const duration = videoEl.duration;
@@ -204,18 +202,16 @@ videoEl.addEventListener("progress", () => {
     }
 });
 
-// 開始 AR 按鈕點擊事件
+// 啟動按鈕
 startBtn.addEventListener("click", () => {
     startOverlay.classList.add("hidden");
     hasUserInteracted = true;
 
-    // 預熱影片防黑屏
     videoEl.load();
     videoEl.play().then(() => {
         videoEl.pause(); 
     }).catch(err => console.log("Muted pre-play init"));
 
-    // 啟動 AR
     const tryStart = () => {
         const mindarSystem = sceneEl.systems["mindar-image-system"];
         if (mindarSystem) {
@@ -230,13 +226,19 @@ startBtn.addEventListener("click", () => {
     tryStart();
 });
 
-// 偵測到圖卡
+// =========================================================
+// 【核心修改】偵測圖卡邏輯（顯現 / 隱藏 HTML 區域）
+// =========================================================
 arTarget.addEventListener("targetFound", () => {
-    console.log("找到圖卡");
+    console.log("找到圖卡：播放影片並開啟 HTML UI");
+    
+    // 1. 顯示 HTML UI 疊加層
+    arHtmlUi.style.display = "block";
+
+    // 2. 處理影片播放
     if (videoEl.readyState < 4) {
         bufferBox.style.display = "flex";
     }
-
     videoEl.muted = false;
     videoEl.play().catch(err => {
         videoEl.muted = true;
@@ -244,18 +246,15 @@ arTarget.addEventListener("targetFound", () => {
     });
 });
 
-// 圖卡遺失
 arTarget.addEventListener("targetLost", () => {
-    console.log("圖卡遺失");
+    console.log("圖卡遺失：暫停影片並隱藏 HTML UI");
+    
+    // 1. 隱藏 HTML UI 疊加層
+    arHtmlUi.style.display = "none";
+
+    // 2. 暫停影片
     videoEl.pause();
     bufferBox.style.display = "none";
-});
-
-// 修正後的底部紅框點擊跳轉邏輯
-clickBtn.addEventListener("click", () => {
-    console.log("成功觸發點擊，正在跳轉至小紅書...");
-    // 採用當前頁面重定向，避開移動端瀏覽器彈窗攔截
-    window.location.href = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend";
 });
 </script>
 
