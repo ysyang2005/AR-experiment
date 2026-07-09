@@ -1,263 +1,244 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>時空信物 - 戀愛巷之謎</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindAR Image Experience</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-        :root {
-            --bg-dark: #0a0a0c;
-            --pink-love: #df6c85;
-            --safe-top: env(safe-area-inset-top, 0px);
-            --safe-bottom: env(safe-area-inset-bottom, 0px);
-            --ar-height: 55vh; 
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-        html, body { width: 100%; height: 100%; overflow: hidden; background-color: var(--bg-dark); font-family: -apple-system, sans-serif; }
-
-        #game-container {
-            width: 100%; height: 100%; height: -webkit-fill-available;
-            background: url('bg_love_lane.jpg') center/cover no-repeat;
-            display: flex; flex-direction: column; justify-content: flex-end;
-            padding-top: var(--safe-top);
-            position: relative;
-            z-index: 10;
-        }
-
-        /* --- AR 容器：修正 display: none 導致的相機初始化失敗 --- */
-        .ar-container {
-            position: absolute;
+        /* 初始遮罩層 */
+        #start-overlay {
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: var(--ar-height);
-            overflow: hidden;
-            /* 改用 visibility 與 z-index 控制隱藏，確保不影響相機元件寬高計算 */
-            visibility: hidden; 
-            z-index: 1;
-            background: #000;
+            height: 100%;
+            background: rgba(0,0,0,.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: #fff;
         }
 
-        .ar-container.active {
-            visibility: visible;
-            z-index: 5;
-        }
-
-        /* 強制蓋過 MindAR/A-Frame 的全螢幕樣式 */
-        .ar-container a-scene,
-        .ar-container canvas,
-        .ar-container video {
-            width: 100% !important;
-            height: var(--ar-height) !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            object-fit: cover !important;
-        }
-
-        /* 掃描提示框 */
-        .ar-overlay {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%); /* 修正原代碼位移偏差 */
-            width: 60%; height: 50%;
-            border: 2px dashed rgba(223, 108, 133, 0.6);
-            border-radius: 10px;
-            pointer-events: none;
-            z-index: 99;
-            display: none;
-        }
-
-        /* 視覺小說置底面板 */
-        .vn-panel {
-            width: 100%;
-            background: linear-gradient(to top, rgba(10,10,12,0.95) 80%, rgba(10,10,12,0));
-            padding: 40px 20px calc(20px + var(--safe-bottom)) 20px;
+        #start-btn, .game-btn {
+            padding: 14px 28px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            background: #007bff;
+            color: #fff;
             cursor: pointer;
-            z-index: 20;
+            font-weight: bold;
         }
 
-        .name-box { color: var(--pink-love); font-weight: bold; border-bottom: 2px solid var(--pink-love); display: inline-block; margin-bottom: 15px; font-size: 16px; }
-        .text-box { font-size: 18px; line-height: 1.6; color: #e0e0e6; min-height: 60px; }
-        .click-hint { text-align: right; font-size: 11px; color: rgba(223, 183, 108, 0.5); margin-top: 15px; opacity: 0.6; }
+        #start-btn:active, .game-btn:active {
+            background: #0056b3;
+        }
+
+        /* 故事劇情面板 */
+        #story-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 25px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border-top: 2px solid #333;
+        }
+
+        .story-text {
+            font-size: 18px;
+            line-height: 1.6;
+            min-height: 50px;
+        }
+
+        .btn-wrapper {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* 通用隱藏樣式 */
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
+
 <body>
 
-<div id="ar-wrapper" class="ar-container">
-    <div id="scan-guide" class="ar-overlay"></div>
-    
-    <a-scene
-        id="ar-scene"
-        mindar-image="
-            imageTargetSrc: ./targets.mind;
-            autoStart: false;
-            filterMinCF: 0.001;
-            filterBeta: 0.01;
-            missTolerance: 10;
-            warmupTolerance: 10"
-        color-space="sRGB"
-        renderer="colorManagement: true; physicallyCorrectLights: true"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false">
-
-        <a-assets timeout="10000">
-            <img id="surpriseImage" src="./1.jpg" crossorigin="anonymous">
-        </a-assets>
-
-        <a-light type="ambient" intensity="3" color="#ffffff"></a-light>
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-        <a-entity mindar-image-target="targetIndex: 0">
-            <a-image
-                src="#surpriseImage"
-                width="1"
-                height="1"
-                position="0 0 0">
-            </a-image>
-        </a-entity>
-    </a-scene>
+<div id="start-overlay">
+    <h2 style="margin-bottom:10px;">MindAR 互動體驗</h2>
+    <p style="margin-bottom:25px;color:#ccc;">點擊按鈕開始進入故事</p>
+    <button id="start-btn">進入遊戲</button>
 </div>
 
-<div id="game-container">
-    <div class="vn-panel" onclick="nextPage()">
-        <div id="name-box" class="name-box">艾蓮娜</div>
-        <div id="dialogue" class="text-box"></div>
-        <div id="click-hint" class="click-hint">▼ 點擊繼續</div>
+<a-scene
+    id="ar-scene"
+    mindar-image="
+        imageTargetSrc: ./targets.mind;
+        autoStart: false;
+        filterMinCF: 0.001;
+        filterBeta: 0.01;
+        missTolerance: 10;
+        warmupTolerance: 10"
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-assets timeout="10000">
+        <img id="imageTarget" src="./1.jpg" crossorigin="anonymous">
+    </a-assets>
+
+    <a-light type="ambient" intensity="3" color="#ffffff"></a-light>
+    <a-light type="directional" intensity="2" position="0 5 0" color="#ffffff"></a-light>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+        <a-image
+            src="#imageTarget"
+            width="1"
+            height="0.5625"
+            position="0 0 0"
+            rotation="0 0 0">
+        </a-image>
+    </a-entity>
+</a-scene>
+
+<div id="story-container" class="hidden">
+    <div id="dialogue-box" class="story-text">正在載入故事...</div>
+    <div class="btn-wrapper">
+        <button id="next-btn" class="game-btn hidden">下一步 ▼</button>
     </div>
 </div>
 
 <script>
-    const storyNodes = [
-        { name: "艾蓮娜", text: "這裡為什麼叫戀愛巷？" },
-        { name: "主角", text: "傳說中是因為..." },
-        { name: "系統", text: "請掃描門口的貓頭鷹，看看有什麼意外收穫。", isARPage: true },
-        { name: "系統", text: "成功解鎖！原來這背後隱藏著一段回憶..." }
-    ];
+// DOM 元素優化獲取
+const sceneEl = document.querySelector("#ar-scene");
+const arTargetEl = document.querySelector("#ar-target");
+const startBtn = document.querySelector("#start-btn");
+const nextBtn = document.querySelector("#next-btn");
+const startOverlay = document.querySelector("#start-overlay");
+const storyContainer = document.querySelector("#story-container");
+const dialogueBox = document.querySelector("#dialogue-box");
 
-    let currentIndex = 0;
-    let isTyping = false;
-    let typeTimer = null;
-    let sceneReady = false;
-    let arStarted = false; // 防重複啟動鎖
+let sceneReady = false;
+let currentStep = 0; 
 
-    const dialogueBox = document.getElementById('dialogue');
-    const nameBox = document.getElementById('name-box');
-    const arWrapper = document.getElementById('ar-wrapper');
-    const scanGuide = document.getElementById('scan-guide');
-    const sceneEl = document.querySelector("#ar-scene");
-    const clickHint = document.getElementById('click-hint');
+// 劇本與狀態控制陣列
+const scriptStages = [
+    { text: "（前情提要）你在桌上發現了一張神祕的舊相片，上面似乎隱藏著某種符號...", isARRequired: false },
+    { text: "【任務】請開啟相機，對準桌上的相片進行掃描以讀取信物資訊。", isARRequired: true },
+    { text: "（成功識別！）相片上浮現出了當年的影像。原來這封信是留給你的...", isARRequired: false },
+    { text: "故事未完待續，感謝體驗！", isARRequired: false }
+];
 
-    sceneEl.addEventListener("loaded", () => {
-        sceneReady = true;
-        console.log("AR 場景載入完成");
-    });
+// 監聽 A-Frame 場景載入
+sceneEl.addEventListener("loaded", () => {
+    sceneReady = true;
+    console.log("Scene Loaded");
+});
 
-    function drawText(node) {
-        isTyping = true;
-        nameBox.innerText = node.name;
-        dialogueBox.innerHTML = "";
-        let i = 0;
-        clearInterval(typeTimer);
-        
-        if (node.isARPage) {
-            setupARView();
-        } else {
-            // 切回非 AR 劇情時，停止相機以節省效能並隱藏
-            stopARView();
-            clickHint.style.display = 'block';
-        }
+// 1. 點擊「進入遊戲」按鈕
+startBtn.addEventListener("click", () => {
+    startOverlay.classList.add("hidden");
+    storyContainer.classList.remove("hidden"); // 顯示劇情面板
+    renderStage();
+});
 
-        typeTimer = setInterval(() => {
-            if (i < node.text.length) {
-                dialogueBox.innerHTML += node.text.charAt(i);
-                i++;
-            } else {
-                clearInterval(typeTimer);
-                isTyping = false;
-            }
-        }, 80);
+// 2. 核心：引導與渲染當前劇情/AR 狀態
+function renderStage() {
+    const stage = scriptStages[currentStep];
+    dialogueBox.innerText = stage.text;
+    
+    // 每次切換先隱藏下一步按鈕，由邏輯控制何時出現
+    nextBtn.classList.add("hidden");
+
+    if (stage.isARRequired) {
+        // 如果這個階段需要 AR 掃描，則啟動相機
+        startCamera();
+    } else {
+        // 如果只是一般劇情，直接顯示「下一步」按鈕讓玩家點擊
+        nextBtn.classList.remove("hidden");
     }
+}
 
-    function setupARView() {
-        arWrapper.classList.add('active');
-        scanGuide.style.display = 'block';
-        clickHint.style.display = 'none'; 
-
-        const tryStartAR = () => {
-            const mindarSystem = sceneEl.systems["mindar-image-system"];
-            if (mindarSystem && !arStarted) {
-                console.log("正在嘗試啟動 MindAR 相機...");
-                mindarSystem.start()
-                    .then(() => {
-                        arStarted = true;
-                        console.log("相機成功開啟");
-                    })
-                    .catch((err) => {
-                        console.error("相機開啟失敗，請確認 HTTPS 或權限:", err);
-                        alert("無法開啟相機。請確保在 HTTPS 環境下執行並已授予相機權限。");
-                    });
-            } else if (!mindarSystem) {
-                setTimeout(tryStartAR, 300);
-            }
-        };
-
-        if (sceneReady) {
-            tryStartAR();
-        } else {
-            sceneEl.addEventListener("loaded", tryStartAR, { once: true });
-        }
-    }
-
-    function stopARView() {
-        arWrapper.classList.remove('active');
-        scanGuide.style.display = 'none';
+// 3. 啟動 MindAR 相機
+function startCamera() {
+    const tryStart = () => {
         const mindarSystem = sceneEl.systems["mindar-image-system"];
-        if (mindarSystem && arStarted) {
-            mindarSystem.stop();
-            arStarted = false;
-            console.log("相機已關閉");
-        }
-    }
-
-    function nextPage() {
-        // 如果當前是 AR 頁面，且尚未識別成功，鎖定不讓前進
-        if (storyNodes[currentIndex].isARPage && !isTyping) {
-            console.log("當前為 AR 掃描任務，請對準貓頭鷹目標。");
-            return; 
-        }
-
-        if (isTyping) {
-            clearInterval(typeTimer);
-            dialogueBox.innerHTML = storyNodes[currentIndex].text;
-            isTyping = false;
+        if (mindarSystem) {
+            console.log("Start MindAR Camera");
+            mindarSystem.start();
         } else {
-            currentIndex++;
-            if (currentIndex < storyNodes.length) {
-                drawText(storyNodes[currentIndex]);
-            } else {
-                alert("故事未完待續...");
-            }
+            setTimeout(tryStart, 300);
         }
+    };
+
+    if (sceneReady) {
+        tryStart();
+    } else {
+        sceneEl.addEventListener("loaded", tryStart, { once: true });
+    }
+}
+
+// 4. 關閉 MindAR 相機（節省效能與耗電）
+function stopCamera() {
+    const mindarSystem = sceneEl.systems["mindar-image-system"];
+    if (mindarSystem) {
+        console.log("Stop MindAR Camera");
+        mindarSystem.stop();
+    }
+}
+
+// 5. 監聽 MindAR 「識別成功」事件
+arTargetEl.addEventListener("targetFound", () => {
+    console.log("Target Found!");
+    
+    // 只有在處於「需要 AR」的劇情步驟時，識別成功才會觸發下一步
+    if (scriptStages[currentStep].isARRequired) {
+        // 這裡可以選擇：A. 立即跳到下一頁，或是 B. 彈出「下一步」按鈕讓玩家看完 AR 再點
+        // 這裡採用 B 方案（彈出下一步按鈕），體驗會更從容：
+        nextBtn.classList.remove("hidden");
+    }
+});
+
+// 6. 點擊「下一步」按鈕的通用邏輯
+nextBtn.addEventListener("click", () => {
+    // 如果剛才是在 AR 掃描狀態，點擊下一步代表要「結束 AR 檢視」回到純劇情了
+    if (scriptStages[currentStep].isARRequired) {
+        stopCamera();
     }
 
-    // 監聽識別成功
-    sceneEl.addEventListener("targetFound", event => {
-        console.log("識別成功：找到貓頭鷹了！");
-        // 自動解鎖並前進到下一段劇情
-        if (storyNodes[currentIndex].isARPage) {
-            // 這裡直接強制進入下一頁
-            currentIndex++;
-            drawText(storyNodes[currentIndex]);
-        }
-    });
-
-    window.onload = () => drawText(storyNodes[0]);
+    currentStep++;
+    
+    if (currentStep < scriptStages.length) {
+        renderStage();
+    } else {
+        dialogueBox.innerText = "體驗已結束。";
+        nextBtn.classList.add("hidden");
+    }
+});
 </script>
+
 </body>
 </html>
