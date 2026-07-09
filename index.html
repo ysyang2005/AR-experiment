@@ -129,8 +129,6 @@
             id="cursor"
             animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
             animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
-            event-set__mouseenter="_event: mouseenter; color: springgreen"
-            event-set__mouseleave="_event: mouseleave; color: black"
             raycaster="objects: .clickable">
         </a-cursor>
     </a-camera>
@@ -161,7 +159,7 @@
             class="clickable"
             position="0 -0.4 0.05"
             geometry="primitive: plane; width: 0.8; height: 0.15"
-            material="color: #ff2442; opacity: 0.9; shader: flat; borderRadius: 0.05">
+            material="color: #ff2442; opacity: 0.9; shader: flat">
             
             <a-text 
                 value="點擊進入 Go to Xiaohongshu" 
@@ -190,7 +188,7 @@ const clickBtn = document.querySelector("#click-btn");
 
 let hasUserInteracted = false;
 
-// 監聽進度條
+// 監聽影片下載進度條
 videoEl.addEventListener("progress", () => {
     if (videoEl.buffered.length > 0) {
         const duration = videoEl.duration;
@@ -206,15 +204,18 @@ videoEl.addEventListener("progress", () => {
     }
 });
 
+// 開始 AR 按鈕點擊事件
 startBtn.addEventListener("click", () => {
     startOverlay.classList.add("hidden");
     hasUserInteracted = true;
 
+    // 預熱影片防黑屏
     videoEl.load();
     videoEl.play().then(() => {
         videoEl.pause(); 
     }).catch(err => console.log("Muted pre-play init"));
 
+    // 啟動 AR
     const tryStart = () => {
         const mindarSystem = sceneEl.systems["mindar-image-system"];
         if (mindarSystem) {
@@ -229,7 +230,7 @@ startBtn.addEventListener("click", () => {
     tryStart();
 });
 
-// 偵測圖卡邏輯
+// 偵測到圖卡
 arTarget.addEventListener("targetFound", () => {
     console.log("找到圖卡");
     if (videoEl.readyState < 4) {
@@ -243,16 +244,18 @@ arTarget.addEventListener("targetFound", () => {
     });
 });
 
+// 圖卡遺失
 arTarget.addEventListener("targetLost", () => {
     console.log("圖卡遺失");
     videoEl.pause();
     bufferBox.style.display = "none";
 });
 
-// 【新增】點擊按鈕跳轉至小紅書
+// 修正後的底部紅框點擊跳轉邏輯
 clickBtn.addEventListener("click", () => {
-    console.log("點擊了跳轉按鈕");
-    window.open("https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend", "_blank");
+    console.log("成功觸發點擊，正在跳轉至小紅書...");
+    // 採用當前頁面重定向，避開移動端瀏覽器彈窗攔截
+    window.location.href = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend";
 });
 </script>
 
