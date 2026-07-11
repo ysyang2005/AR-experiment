@@ -10,22 +10,27 @@
     </style>
 
     <script>
-        // 【核心新增】：註冊一個專門過濾黑底的 A-Frame 著色器
+        // 註冊過濾黑底的著色器
         AFRAME.registerShader('chromakey-black', {
             schema: {
                 src: {type: 'map'},
-                threshold: {type: 'number', default: 0.1} // 黑色判定閾值，值越大去黑越激進
+                threshold: {type: 'number', default: 0.15}
             },
             init: function(data) {
-                this.textureSrc = data.src;
                 this.material = new THREE.MeshBasicMaterial({
-                    transparent: true, // 開啟透明支持
+                    transparent: true,
                     side: THREE.DoubleSide
                 });
                 return this.material;
             },
             update: function(data) {
                 this.material.map = data.src;
+            },
+            tick: function() {
+                // 每幀強制更新紋理，防止移動端畫面卡死或透明
+                if (this.material.map && this.material.map.image) {
+                    this.material.map.needsUpdate = true;
+                }
             },
             vertexShader: `
                 varying vec2 vUv;
@@ -40,11 +45,8 @@
                 varying vec2 vUv;
                 void main() {
                     vec4 texColor = texture2D(src, vUv);
-                    // 計算像素的亮度 (RGB 平均值或灰階值)
                     float brightness = (texColor.r + texColor.g + texColor.b) / 3.0;
-                    
                     if (brightness < threshold) {
-                        // 如果低於閾值，判定為黑色，將透明度設為 0
                         gl_FragColor = vec4(texColor.rgb, 0.0);
                     } else {
                         gl_FragColor = texColor;
@@ -65,19 +67,19 @@
         <a-assets>
             <video id="vid" 
                    src="./1.mp4" 
+                   type="video/mp4"
                    preload="auto" 
                    loop="true" 
                    muted="true" 
-                   autoplay="true"
-                   crossorigin="anonymous" 
-                   webkit-playsinline 
-                   playsinline>
+                   playsinline
+                   webkit-playsinline
+                   crossorigin="anonymous">
             </video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity id="ar-target" mindar-image-target="targetIndex: 0" scale="1 1 1">
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
             <a-mesh id="ar-video" 
                     geometry="primitive: plane; width: 1; height: 1;"
                     material="shader: chromakey-black; src: #vid; threshold: 0.15;"
@@ -90,45 +92,64 @@
     <script>
         const video = document.querySelector('#vid');
         const arVideo = document.querySelector('#ar-video');
-
-        // 自動適應視頻寬高比，防止壓扁
-        video.addEventListener('loadedmetadata', function() {
-            const aspect = video.videoWidth / video.videoHeight;
-            if (aspect >= 1) {
-                arVideo.setAttribute('geometry', { primitive: 'plane', width: 1, height: 1 / aspect });
-            } else {
-                arVideo.setAttribute('geometry', { primitive: 'plane', height: 1, width: aspect });
-            }
-        });
-
-        // 底層強制播放函數
-        const forcePlay = () => {
-            if (video.paused) {
-                video.muted = true; 
-                video.play().catch((err) => {
-                    console.log("瀏覽器依然攔截，嘗試透過頁面點擊事件來解鎖", err);
-                    document.body.addEventListener('click', () => {
-                        video.play();
-                    }, { once: true });
-                });
-            }
-        };
-
-        // 當識別到產品時，立刻強制播放
         const targetEntity = document.querySelector('#ar-target');
-        targetEntity.addEventListener("targetFound", event => {
-            console.log("識別成功，觸發強制播放");
-            forcePlay();
-        });
 
-        // 失去識別時暫停
-        targetEntity.addEventListener("targetLost", event => {
-            video.pause();
-        });
+        // 自動適應寬高比
+        function resizeVideo() {
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                const aspect = video.videoWidth / video.videoHeight;
+                if (aspect >= 1) {
+                    arVideo.setAttribute('geometry', { primitive: 'plane', width: 1, height: 1 / aspect });
+                } else {
+                    arVideo.setAttribute('geometry', { primitive: 'plane', height: 1, width: aspect });
+                }
+                console.log("視頻尺寸已適應:", video.videoWidth, "x", video.videoHeight);
+            }
+        }
 
-        // 頁面初次載入時，先嘗試靜音預載入
+        video.addEventListener('loadedmetadata', resizeVideo);
+
+        // 核心改動 3：初始化預加載機制
+        // 在頁面加載時先靜音播放 0.1 秒然後暫停，這能強制讓瀏覽器和 WebGL 完成視頻紋理的握手
         window.addEventListener('load', () => {
-            video.load();
+            video.play().then(() => {
+                video.pause();
+                console.log("WebGL 視頻紋理預加載成功");
+            }).catch((e) => {
+                console.log("初始預加載受阻（正常現象），等待識別後觸發", e);
+            });
+        });
+
+        // 強制播放控制
+        const startPlayback = () => {
+            video.muted = true;
+            resizeVideo();
+            
+            video.play().then(() => {
+                console.log("視頻成功播放並渲染");
+            }).catch((err) => {
+                console.log("被瀏覽器攔截，添加手勢解鎖");
+                
+                // 終極手勢解鎖
+                const unlock = () => {
+                    video.play().then(() => resizeVideo());
+                    document.body.removeEventListener('click', unlock);
+                    document.body.removeEventListener('touchstart', unlock);
+                };
+                document.body.addEventListener('click', unlock);
+                document.body.addEventListener('touchstart', unlock);
+            });
+        };
+        
+        // 監聽識別事件
+        targetEntity.addEventListener("targetFound", event => {
+            console.log("識別成功，開始引導播放");
+            startPlayback();
+        });
+
+        targetEntity.addEventListener("targetLost", event => {
+            console.log("失去識別，暫停");
+            video.pause();
         });
     </script>
 </body>
