@@ -8,12 +8,57 @@
     <style>
         body { margin: 0; overflow: hidden; }
     </style>
+
+    <script>
+        // 【核心新增】：註冊一個專門過濾黑底的 A-Frame 著色器
+        AFRAME.registerShader('chromakey-black', {
+            schema: {
+                src: {type: 'map'},
+                threshold: {type: 'number', default: 0.1} // 黑色判定閾值，值越大去黑越激進
+            },
+            init: function(data) {
+                this.textureSrc = data.src;
+                this.material = new THREE.MeshBasicMaterial({
+                    transparent: true, // 開啟透明支持
+                    side: THREE.DoubleSide
+                });
+                return this.material;
+            },
+            update: function(data) {
+                this.material.map = data.src;
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D src;
+                uniform float threshold;
+                varying vec2 vUv;
+                void main() {
+                    vec4 texColor = texture2D(src, vUv);
+                    // 計算像素的亮度 (RGB 平均值或灰階值)
+                    float brightness = (texColor.r + texColor.g + texColor.b) / 3.0;
+                    
+                    if (brightness < threshold) {
+                        // 如果低於閾值，判定為黑色，將透明度設為 0
+                        gl_FragColor = vec4(texColor.rgb, 0.0);
+                    } else {
+                        gl_FragColor = texColor;
+                    }
+                }
+            `
+        });
+    </script>
 </head>
 <body>
 
     <a-scene mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;" 
              color-space="sRGB" 
-             renderer="colorManagement: true, physicallyCorrectLights" 
+             renderer="colorManagement: true, physicallyCorrectLights; alpha: true;" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
       
@@ -33,15 +78,14 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0" scale="1 1 1">
-            <a-video id="ar-video" 
-                     src="#vid" 
-                     position="0 0 0.01" 
-                     rotation="0 0 0"
-                     width="1" 
-                     height="1">
-            </a-video>
+            <a-mesh id="ar-video" 
+                    geometry="primitive: plane; width: 1; height: 1;"
+                    material="shader: chromakey-black; src: #vid; threshold: 0.15;"
+                    position="0 0 0.01" 
+                    rotation="0 0 0">
+            </a-mesh>
         </a-entity>
-    </scene>
+    </a-scene>
 
     <script>
         const video = document.querySelector('#vid');
@@ -51,23 +95,18 @@
         video.addEventListener('loadedmetadata', function() {
             const aspect = video.videoWidth / video.videoHeight;
             if (aspect >= 1) {
-                arVideo.setAttribute('width', '1');
-                arVideo.setAttribute('height', (1 / aspect).toString());
+                arVideo.setAttribute('geometry', { primitive: 'plane', width: 1, height: 1 / aspect });
             } else {
-                arVideo.setAttribute('height', '1');
-                arVideo.setAttribute('width', aspect.toString());
+                arVideo.setAttribute('geometry', { primitive: 'plane', height: 1, width: aspect });
             }
         });
 
-        // 【核心修改 2】：底層強制播放函數
+        // 底層強制播放函數
         const forcePlay = () => {
             if (video.paused) {
-                // 再次確保靜音，這是突破瀏覽器限制的關鍵
                 video.muted = true; 
-                
                 video.play().catch((err) => {
                     console.log("瀏覽器依然攔截，嘗試透過頁面點擊事件來解鎖", err);
-                    // 備用方案：一旦用戶觸摸螢幕任意地方，立刻觸發播放
                     document.body.addEventListener('click', () => {
                         video.play();
                     }, { once: true });
