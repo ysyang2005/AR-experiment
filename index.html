@@ -7,67 +7,36 @@
     
     <style>
         body { margin: 0; overflow: hidden; }
+        /* 提示用戶點擊的遮罩（可選，用來應對 iOS 的嚴格限制） */
+        #click-prompt {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            pointer-events: none;
+            display: none;
+        }
     </style>
-
-    <script>
-        // 註冊過濾黑底的著色器
-        AFRAME.registerShader('chromakey-black', {
-            schema: {
-                src: {type: 'map'},
-                threshold: {type: 'number', default: 0.15}
-            },
-            init: function(data) {
-                this.material = new THREE.MeshBasicMaterial({
-                    transparent: true,
-                    side: THREE.DoubleSide
-                });
-                return this.material;
-            },
-            update: function(data) {
-                this.material.map = data.src;
-            },
-            tick: function() {
-                // 每幀強制更新紋理，防止移動端畫面卡死或透明
-                if (this.material.map && this.material.map.image) {
-                    this.material.map.needsUpdate = true;
-                }
-            },
-            vertexShader: `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform sampler2D src;
-                uniform float threshold;
-                varying vec2 vUv;
-                void main() {
-                    vec4 texColor = texture2D(src, vUv);
-                    float brightness = (texColor.r + texColor.g + texColor.b) / 3.0;
-                    if (brightness < threshold) {
-                        gl_FragColor = vec4(texColor.rgb, 0.0);
-                    } else {
-                        gl_FragColor = texColor;
-                    }
-                }
-            `
-        });
-    </script>
 </head>
 <body>
 
+    <div id="click-prompt">識別成功！請點擊螢幕解鎖視頻</div>
+
     <a-scene mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;" 
              color-space="sRGB" 
-             renderer="colorManagement: true, physicallyCorrectLights; alpha: true;" 
+             renderer="colorManagement: true, physicallyCorrectLights; alpha: true; precision: mediump;" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
       
         <a-assets>
             <video id="vid" 
                    src="./1.mp4" 
-                   type="video/mp4"
                    preload="auto" 
                    loop="true" 
                    muted="true" 
@@ -82,7 +51,7 @@
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
             <a-mesh id="ar-video" 
                     geometry="primitive: plane; width: 1; height: 1;"
-                    material="shader: chromakey-black; src: #vid; threshold: 0.15;"
+                    material="src: #vid; transparent: true; blending: screen; side: double; depthWrite: false;"
                     position="0 0 0.01" 
                     rotation="0 0 0">
             </a-mesh>
@@ -93,8 +62,9 @@
         const video = document.querySelector('#vid');
         const arVideo = document.querySelector('#ar-video');
         const targetEntity = document.querySelector('#ar-target');
+        const prompt = document.querySelector('#click-prompt');
 
-        // 自動適應寬高比
+        // 適應視頻比例，防止變形
         function resizeVideo() {
             if (video.videoWidth > 0 && video.videoHeight > 0) {
                 const aspect = video.videoWidth / video.videoHeight;
@@ -103,54 +73,62 @@
                 } else {
                     arVideo.setAttribute('geometry', { primitive: 'plane', height: 1, width: aspect });
                 }
-                console.log("視頻尺寸已適應:", video.videoWidth, "x", video.videoHeight);
             }
         }
 
+        // 當視頻元數據加載好時更新尺寸
         video.addEventListener('loadedmetadata', resizeVideo);
 
-        // 核心改動 3：初始化預加載機制
-        // 在頁面加載時先靜音播放 0.1 秒然後暫停，這能強制讓瀏覽器和 WebGL 完成視頻紋理的握手
-        window.addEventListener('load', () => {
-            video.play().then(() => {
-                video.pause();
-                console.log("WebGL 視頻紋理預加載成功");
-            }).catch((e) => {
-                console.log("初始預加載受阻（正常現象），等待識別後觸發", e);
-            });
-        });
-
-        // 強制播放控制
-        const startPlayback = () => {
+        // 核心改動 3：終極手勢與解鎖邏輯
+        function playAndRefresh() {
             video.muted = true;
-            resizeVideo();
             
+            // 強制重新將視頻源丟給 WebGL 材質，打破「透明隱身」的 Bug
+            if (arVideo.getObject3D('mesh')) {
+                const material = arVideo.getObject3D('mesh').material;
+                if (material && !material.map) {
+                    material.map = new THREE.VideoTexture(video);
+                }
+                material.needsUpdate = true;
+            }
+
             video.play().then(() => {
-                console.log("視頻成功播放並渲染");
+                console.log("視頻成功播放");
+                prompt.style.display = 'none';
+                resizeVideo();
             }).catch((err) => {
-                console.log("被瀏覽器攔截，添加手勢解鎖");
-                
-                // 終極手勢解鎖
-                const unlock = () => {
-                    video.play().then(() => resizeVideo());
-                    document.body.removeEventListener('click', unlock);
-                    document.body.removeEventListener('touchstart', unlock);
-                };
-                document.body.addEventListener('click', unlock);
-                document.body.addEventListener('touchstart', unlock);
+                console.log("被瀏覽器攔截，顯示提示讓用戶點擊", err);
+                prompt.style.display = 'block';
             });
-        };
-        
+        }
+
         // 監聽識別事件
         targetEntity.addEventListener("targetFound", event => {
-            console.log("識別成功，開始引導播放");
-            startPlayback();
+            console.log("識別到物體");
+            playAndRefresh();
         });
 
         targetEntity.addEventListener("targetLost", event => {
-            console.log("失去識別，暫停");
+            console.log("失去識別");
             video.pause();
+            prompt.style.display = 'none';
         });
+
+        // 全局點擊解鎖事件（針對 iOS Safari 終極防禦）
+        const handleUserClick = () => {
+            if (!video.paused) return; // 如果已經在播了就不管它
+            
+            // 只有當識別到了才在點擊時觸發播放
+            const arSystem = document.querySelector('a-scene').systems['mindar-image-system'];
+            // 檢查當前是否有目標被追蹤到
+            video.play().then(() => {
+                prompt.style.display = 'none';
+                resizeVideo();
+            }).catch(e => console.log(e));
+        };
+
+        document.body.addEventListener('click', handleUserClick);
+        document.body.addEventListener('touchstart', handleUserClick);
     </script>
 </body>
 </html>
