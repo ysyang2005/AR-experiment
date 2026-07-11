@@ -6,30 +6,10 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
-        /* 點擊播放的提示遮罩（部分瀏覽器限制自動播放視頻，需要用戶點擊互動） */
-        #play-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 999;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-family: sans-serif;
-            cursor: pointer;
-            display: none;
-        }
+        body { margin: 0; overflow: hidden; }
     </style>
 </head>
 <body>
-
-    <div id="play-overlay">點擊螢幕播放 AR 視頻</div>
 
     <a-scene mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;" 
              color-space="sRGB" 
@@ -39,9 +19,11 @@
       
         <a-assets>
             <video id="vid" 
-                   src="./video.mp4" 
+                   src="./1.mp4" 
                    preload="auto" 
                    loop="true" 
+                   muted="true" 
+                   autoplay="true"
                    crossorigin="anonymous" 
                    webkit-playsinline 
                    playsinline>
@@ -51,65 +33,63 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0" scale="1 1 1">
-            
             <a-video id="ar-video" 
                      src="#vid" 
-                     position="0 0 0" 
+                     position="0 0 0.01" 
                      rotation="0 0 0"
                      width="1" 
                      height="1">
             </a-video>
-                 
         </a-entity>
-    </a-scene>
+    </scene>
 
     <script>
         const video = document.querySelector('#vid');
         const arVideo = document.querySelector('#ar-video');
-        const overlay = document.querySelector('#play-overlay');
 
-        // 核心：當視頻元數據加載完成後，自動計算並調整 A-Frame 中的 width 和 height，防止變形
+        // 自動適應視頻寬高比，防止壓扁
         video.addEventListener('loadedmetadata', function() {
             const aspect = video.videoWidth / video.videoHeight;
-            
             if (aspect >= 1) {
-                // 橫向或正方形視頻：以寬度為基準填滿識別圖
                 arVideo.setAttribute('width', '1');
                 arVideo.setAttribute('height', (1 / aspect).toString());
             } else {
-                // 縱向（豎屏）視頻：以高度為基準填滿識別圖
                 arVideo.setAttribute('height', '1');
                 arVideo.setAttribute('width', aspect.toString());
             }
         });
 
-        // 處理不同瀏覽器的視頻播放限制（互動後播放）
-        const startVideo = () => {
-            video.play().then(() => {
-                overlay.style.display = 'none';
-            }).catch((err) => {
-                console.log("自動播放被攔截，顯示手動播放按鈕", err);
-                overlay.style.display = 'block';
-            });
+        // 【核心修改 2】：底層強制播放函數
+        const forcePlay = () => {
+            if (video.paused) {
+                // 再次確保靜音，這是突破瀏覽器限制的關鍵
+                video.muted = true; 
+                
+                video.play().catch((err) => {
+                    console.log("瀏覽器依然攔截，嘗試透過頁面點擊事件來解鎖", err);
+                    // 備用方案：一旦用戶觸摸螢幕任意地方，立刻觸發播放
+                    document.body.addEventListener('click', () => {
+                        video.play();
+                    }, { once: true });
+                });
+            }
         };
 
-        // 當識別到產品（Target Found）時自動播放
+        // 當識別到產品時，立刻強制播放
         const targetEntity = document.querySelector('#ar-target');
         targetEntity.addEventListener("targetFound", event => {
-            console.log("產品已識別");
-            startVideo();
+            console.log("識別成功，觸發強制播放");
+            forcePlay();
         });
 
-        // 當失去識別時暫停視頻，節省效能
+        // 失去識別時暫停
         targetEntity.addEventListener("targetLost", event => {
-            console.log("失去產品識別");
             video.pause();
         });
 
-        // 點擊提示遮罩播放
-        overlay.addEventListener('click', () => {
-            video.play();
-            overlay.style.display = 'none';
+        // 頁面初次載入時，先嘗試靜音預載入
+        window.addEventListener('load', () => {
+            video.load();
         });
     </script>
 </body>
