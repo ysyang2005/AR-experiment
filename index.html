@@ -7,30 +7,13 @@
     
     <style>
         body { margin: 0; overflow: hidden; }
-        /* 提示用戶點擊的遮罩（可選，用來應對 iOS 的嚴格限制） */
-        #click-prompt {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            pointer-events: none;
-            display: none;
-        }
     </style>
 </head>
 <body>
 
-    <div id="click-prompt">識別成功！請點擊螢幕解鎖視頻</div>
-
     <a-scene mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;" 
              color-space="sRGB" 
-             renderer="colorManagement: true, physicallyCorrectLights; alpha: true; precision: mediump;" 
+             renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
       
@@ -49,12 +32,13 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-            <a-mesh id="ar-video" 
-                    geometry="primitive: plane; width: 1; height: 1;"
-                    material="src: #vid; transparent: true; blending: screen; side: double; depthWrite: false;"
-                    position="0 0 0.01" 
-                    rotation="0 0 0">
-            </a-mesh>
+            <a-video id="ar-video" 
+                     src="#vid" 
+                     position="0 0 0.01" 
+                     rotation="0 0 0"
+                     width="1" 
+                     height="1">
+            </a-video>
         </a-entity>
     </a-scene>
 
@@ -62,73 +46,52 @@
         const video = document.querySelector('#vid');
         const arVideo = document.querySelector('#ar-video');
         const targetEntity = document.querySelector('#ar-target');
-        const prompt = document.querySelector('#click-prompt');
 
-        // 適應視頻比例，防止變形
+        // 自動適應視頻寬高比，防止畫面被壓扁或拉伸
         function resizeVideo() {
             if (video.videoWidth > 0 && video.videoHeight > 0) {
                 const aspect = video.videoWidth / video.videoHeight;
                 if (aspect >= 1) {
-                    arVideo.setAttribute('geometry', { primitive: 'plane', width: 1, height: 1 / aspect });
+                    arVideo.setAttribute('width', '1');
+                    arVideo.setAttribute('height', (1 / aspect).toString());
                 } else {
-                    arVideo.setAttribute('geometry', { primitive: 'plane', height: 1, width: aspect });
+                    arVideo.setAttribute('height', '1');
+                    arVideo.setAttribute('width', aspect.toString());
                 }
             }
         }
 
-        // 當視頻元數據加載好時更新尺寸
         video.addEventListener('loadedmetadata', resizeVideo);
 
-        // 核心改動 3：終極手勢與解鎖邏輯
-        function playAndRefresh() {
-            video.muted = true;
-            
-            // 強制重新將視頻源丟給 WebGL 材質，打破「透明隱身」的 Bug
-            if (arVideo.getObject3D('mesh')) {
-                const material = arVideo.getObject3D('mesh').material;
-                if (material && !material.map) {
-                    material.map = new THREE.VideoTexture(video);
-                }
-                material.needsUpdate = true;
-            }
+        // 強制播放控制（解決移動端瀏覽器安全限制）
+        const forcePlay = () => {
+            video.muted = true; // 必須保持靜音才能在移動端自動播放
+            resizeVideo();
 
-            video.play().then(() => {
-                console.log("視頻成功播放");
-                prompt.style.display = 'none';
-                resizeVideo();
-            }).catch((err) => {
-                console.log("被瀏覽器攔截，顯示提示讓用戶點擊", err);
-                prompt.style.display = 'block';
+            video.play().catch((err) => {
+                console.log("移動端瀏覽器攔截自動播放，等待用戶點擊螢幕解鎖...", err);
+                
+                // 終極解鎖方案：只要用戶點擊或觸摸螢幕任意地方，立刻喚醒播放
+                const unlock = () => {
+                    video.play().then(() => resizeVideo());
+                    document.body.removeEventListener('click', unlock);
+                    document.body.removeEventListener('touchstart', unlock);
+                };
+                document.body.addEventListener('click', unlock);
+                document.body.addEventListener('touchstart', unlock);
             });
-        }
+        };
 
-        // 監聽識別事件
+        // 監聽 MindAR 的識別事件
         targetEntity.addEventListener("targetFound", event => {
-            console.log("識別到物體");
-            playAndRefresh();
+            console.log("識別成功，開始播放視頻");
+            forcePlay();
         });
 
         targetEntity.addEventListener("targetLost", event => {
-            console.log("失去識別");
+            console.log("失去識別，暫停視頻");
             video.pause();
-            prompt.style.display = 'none';
         });
-
-        // 全局點擊解鎖事件（針對 iOS Safari 終極防禦）
-        const handleUserClick = () => {
-            if (!video.paused) return; // 如果已經在播了就不管它
-            
-            // 只有當識別到了才在點擊時觸發播放
-            const arSystem = document.querySelector('a-scene').systems['mindar-image-system'];
-            // 檢查當前是否有目標被追蹤到
-            video.play().then(() => {
-                prompt.style.display = 'none';
-                resizeVideo();
-            }).catch(e => console.log(e));
-        };
-
-        document.body.addEventListener('click', handleUserClick);
-        document.body.addEventListener('touchstart', handleUserClick);
     </script>
 </body>
 </html>
