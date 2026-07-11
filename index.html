@@ -1,262 +1,116 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MindAR Hybrid UI Experience</title>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
+    
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background: #000;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-
-        /* 1. 開始 AR 的覆蓋層 */
-        #start-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,.9);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 9999; color: #fff;
-        }
-        #start-btn {
-            padding: 14px 28px; font-size: 18px; border: none; border-radius: 8px;
-            background: #007bff; color: #fff; cursor: pointer; font-weight: bold;
-        }
-
-        /* 2. 影片緩衝提示 */
-        #buffer-box {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 10px;
-            z-index: 8888; color: white; display: none; flex-direction: column; align-items: center;
-        }
-        .progress-container { width: 200px; background-color: #333; border-radius: 10px; margin-top: 10px; overflow: hidden; }
-        .progress-bar { width: 0%; height: 6px; background-color: #28a745; transition: width 0.1s ease; }
-
-        /* =========================================================
-           【核心新增】3. 專屬的 AR HTML UI 設計區域
-           ========================================================= */
-        #ar-html-ui {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; /* 穿透層：確保不會擋住底層 AR 的相機渲染 */
-            z-index: 5555;
-            display: none; /* 預設完全隱藏，只有識別到圖卡時才會顯現 */
-        }
-
-        /* 弧形文字樣式（透過 CSS clip-path 或簡單弧形排版，這裡提供網頁標準精美設計） */
-        .arc-text-container {
+        /* 點擊播放的提示遮罩（部分瀏覽器限制自動播放視頻，需要用戶點擊互動） */
+        #play-overlay {
             position: absolute;
-            top: 15%; left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            text-align: center;
-            pointer-events: auto; /* 恢復可點擊/互動 */
-        }
-        
-        .arc-text {
-            font-size: 26px;
-            font-weight: bold;
-            color: #ffffff;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8), 0 0 20px #ffb703; /* 加上發光霓虹效果 */
-            letter-spacing: 2px;
-            display: inline-block;
-            /* 如果想做真正的網頁圓弧，可以使用以下 CSS 曲線效果，或者直接當作精美頂部標題 */
-            background: rgba(0, 0, 0, 0.6);
-            padding: 8px 20px;
-            border-radius: 50px;
-        }
-
-        /* 底部跳轉文字框 */
-        .bottom-link-box {
-            position: absolute;
-            bottom: 12%; left: 50%;
-            transform: translateX(-50%);
-            width: 85%;
-            max-width: 340px;
-            background: #ff2442; /* 小紅書經典紅 */
-            color: #ffffff;
-            text-align: center;
-            padding: 14px;
-            border-radius: 30px;
-            font-size: 16px;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(255, 36, 66, 0.4);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 999;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-family: sans-serif;
             cursor: pointer;
-            pointer-events: auto; /* 恢復可點擊 */
-            transition: transform 0.2s ease;
-            text-decoration: none; /* 移除超連結底線 */
-            display: block;
+            display: none;
         }
-        .bottom-link-box:active {
-            transform: translateX(-50%) scale(0.95); /* 按壓視覺反饋 */
-        }
-
-        .hidden { display: none !important; }
     </style>
 </head>
-
 <body>
 
-<div id="start-overlay">
-    <h2 style="margin-bottom:10px;">MindAR 影片體驗</h2>
-    <p style="margin-bottom:20px;color:#ccc;">點擊按鈕開啟相機並載入體驗</p>
-    <button id="start-btn">開始 AR</button>
-</div>
+    <div id="play-overlay">點擊螢幕播放 AR 視頻</div>
 
-<div id="buffer-box">
-    <span id="status-text">影片載入中...</span>
-    <div class="progress-container">
-        <div id="progress-bar" class="progress-bar"></div>
-    </div>
-</div>
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;" 
+             color-space="sRGB" 
+             renderer="colorManagement: true, physicallyCorrectLights" 
+             vr-mode-ui="enabled: false" 
+             device-orientation-permission-ui="enabled: false">
+      
+        <a-assets>
+            <video id="vid" 
+                   src="./video.mp4" 
+                   preload="auto" 
+                   loop="true" 
+                   crossorigin="anonymous" 
+                   webkit-playsinline 
+                   playsinline>
+            </video>
+        </a-assets>
 
-<div id="ar-html-ui">
-    <div class="arc-text-container">
-        <div class="arc-text">歡迎來到新濠天地</div>
-    </div>
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a href="https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend" class="bottom-link-box">
-        點擊進入，點擊跳轉小紅書
-    </a>
-</div>
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0" scale="1 1 1">
+            
+            <a-video id="ar-video" 
+                     src="#vid" 
+                     position="0 0 0" 
+                     rotation="0 0 0"
+                     width="1" 
+                     height="1">
+            </a-video>
+                 
+        </a-entity>
+    </a-scene>
 
-<a-scene
-    id="ar-scene"
-    mindar-image="
-        imageTargetSrc: ./targets.mind;
-        autoStart: false;
-        filterMinCF: 0.001;
-        filterBeta: 0.01;
-        missTolerance: 10;
-        warmupTolerance: 10"
-    color-space="sRGB"
-    renderer="colorManagement: true; physicallyCorrectLights: true"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false">
+    <script>
+        const video = document.querySelector('#vid');
+        const arVideo = document.querySelector('#ar-video');
+        const overlay = document.querySelector('#play-overlay');
 
-    <a-assets timeout="20000">
-        <video 
-            id="videoTarget" 
-            src="./1.mp4" 
-            loop="true" 
-            playsinline 
-            webkit-playsinline 
-            muted
-            crossorigin="anonymous">
-        </video>
-    </a-assets>
-
-    <a-light type="ambient" intensity="3" color="#ffffff"></a-light>
-    <a-light type="directional" intensity="2" position="0 5 0" color="#ffffff"></a-light>
-
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-    <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-        <a-video
-            id="main-video"
-            src="#videoTarget"
-            width="1"
-            height="0.5625"
-            position="0 0 0"
-            rotation="0 0 0">
-        </a-video>
-    </a-entity>
-
-</a-scene>
-
-<script>
-const sceneEl = document.querySelector("#ar-scene");
-const startBtn = document.querySelector("#start-btn");
-const startOverlay = document.querySelector("#start-overlay");
-const arTarget = document.querySelector("#ar-target");
-const videoEl = document.querySelector("#videoTarget");
-
-const bufferBox = document.querySelector("#buffer-box");
-const statusText = document.querySelector("#status-text");
-const progressBar = document.querySelector("#progress-bar");
-
-// 獲取我們的 HTML UI 容器
-const arHtmlUi = document.querySelector("#ar-html-ui");
-
-let hasUserInteracted = false;
-
-// 影片下載緩衝進度
-videoEl.addEventListener("progress", () => {
-    if (videoEl.buffered.length > 0) {
-        const duration = videoEl.duration;
-        const bufferedEnd = videoEl.buffered.end(videoEl.buffered.length - 1);
-        if (duration > 0) {
-            const percent = (bufferedEnd / duration) * 100;
-            progressBar.style.width = `${percent}%`;
-            statusText.innerText = `影片緩衝中: ${Math.round(percent)}%`;
-            if (percent >= 95 && bufferBox.style.display !== "none") {
-                setTimeout(() => { bufferBox.style.display = "none"; }, 1000);
+        // 核心：當視頻元數據加載完成後，自動計算並調整 A-Frame 中的 width 和 height，防止變形
+        video.addEventListener('loadedmetadata', function() {
+            const aspect = video.videoWidth / video.videoHeight;
+            
+            if (aspect >= 1) {
+                // 橫向或正方形視頻：以寬度為基準填滿識別圖
+                arVideo.setAttribute('width', '1');
+                arVideo.setAttribute('height', (1 / aspect).toString());
+            } else {
+                // 縱向（豎屏）視頻：以高度為基準填滿識別圖
+                arVideo.setAttribute('height', '1');
+                arVideo.setAttribute('width', aspect.toString());
             }
-        }
-    }
-});
+        });
 
-// 啟動按鈕
-startBtn.addEventListener("click", () => {
-    startOverlay.classList.add("hidden");
-    hasUserInteracted = true;
+        // 處理不同瀏覽器的視頻播放限制（互動後播放）
+        const startVideo = () => {
+            video.play().then(() => {
+                overlay.style.display = 'none';
+            }).catch((err) => {
+                console.log("自動播放被攔截，顯示手動播放按鈕", err);
+                overlay.style.display = 'block';
+            });
+        };
 
-    videoEl.load();
-    videoEl.play().then(() => {
-        videoEl.pause(); 
-    }).catch(err => console.log("Muted pre-play init"));
+        // 當識別到產品（Target Found）時自動播放
+        const targetEntity = document.querySelector('#ar-target');
+        targetEntity.addEventListener("targetFound", event => {
+            console.log("產品已識別");
+            startVideo();
+        });
 
-    const tryStart = () => {
-        const mindarSystem = sceneEl.systems["mindar-image-system"];
-        if (mindarSystem) {
-            console.log("Start MindAR");
-            mindarSystem.start();
-        } else {
-            console.log("Waiting MindAR...");
-            setTimeout(tryStart, 300);
-        }
-    };
+        // 當失去識別時暫停視頻，節省效能
+        targetEntity.addEventListener("targetLost", event => {
+            console.log("失去產品識別");
+            video.pause();
+        });
 
-    tryStart();
-});
-
-// =========================================================
-// 【核心修改】偵測圖卡邏輯（顯現 / 隱藏 HTML 區域）
-// =========================================================
-arTarget.addEventListener("targetFound", () => {
-    console.log("找到圖卡：播放影片並開啟 HTML UI");
-    
-    // 1. 顯示 HTML UI 疊加層
-    arHtmlUi.style.display = "block";
-
-    // 2. 處理影片播放
-    if (videoEl.readyState < 4) {
-        bufferBox.style.display = "flex";
-    }
-    videoEl.muted = false;
-    videoEl.play().catch(err => {
-        videoEl.muted = true;
-        videoEl.play();
-    });
-});
-
-arTarget.addEventListener("targetLost", () => {
-    console.log("圖卡遺失：暫停影片並隱藏 HTML UI");
-    
-    // 1. 隱藏 HTML UI 疊加層
-    arHtmlUi.style.display = "none";
-
-    // 2. 暫停影片
-    videoEl.pause();
-    bufferBox.style.display = "none";
-});
-</script>
-
+        // 點擊提示遮罩播放
+        overlay.addEventListener('click', () => {
+            video.play();
+            overlay.style.display = 'none';
+        });
+    </script>
 </body>
 </html>
