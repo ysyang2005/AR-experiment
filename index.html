@@ -18,28 +18,60 @@
              device-orientation-permission-ui="enabled: false">
       
         <a-assets>
-            <img id="img-texture" src="1.png" crossorigin="anonymous">
+            <img id="img-resource" src="1.png" crossorigin="anonymous">
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
             <a-image id="ar-img"
-                     src="#img-texture"
+                     src="#img-resource"
                      position="0 0 0" 
                      rotation="90 0 0" 
-                     width="1" 
-                     height="1"
-                     material="shader: flat; transparent: true; opacity: 1.0; side: double;">
+                     material="shader: flat; transparent: true; side: double; npot: true;">
             </a-image>
         </a-entity>
     </a-scene>
 
     <script>
         const targetEntity = document.querySelector('#ar-target');
+        const imgResource = document.querySelector('#img-resource');
+        const arImgEntity = document.querySelector('#ar-img');
 
+        // 定義一個設定尺寸的基準值（例如讓圖片的較長邊顯示為 1 個 A-Frame 單位）
+        const BASE_SIZE = 1;
+
+        // 計算並設定圖片比例的函數
+        function setARImageRatio() {
+            if (imgResource.naturalWidth > 0 && imgResource.naturalHeight > 0) {
+                const width = imgResource.naturalWidth;
+                const height = imgResource.naturalHeight;
+                const aspectRatio = width / height;
+
+                console.log(`圖片原始尺寸: ${width}x${height}, 比例: ${aspectRatio}`);
+
+                if (aspectRatio >= 1) {
+                    // 橫向圖片或正方形
+                    arImgEntity.setAttribute('width', BASE_SIZE);
+                    arImgEntity.setAttribute('height', BASE_SIZE / aspectRatio);
+                } else {
+                    // 直向圖片
+                    arImgEntity.setAttribute('width', BASE_SIZE * aspectRatio);
+                    arImgEntity.setAttribute('height', BASE_SIZE);
+                }
+            }
+        }
+
+        // 監聽圖片資源載入事件，確保獲取到 naturalWidth/Height
+        if (imgResource.complete) {
+            setARImageRatio(); // 如果圖片已經快取完成了
+        } else {
+            imgResource.addEventListener('load', setARImageRatio); // 等待載入完成
+        }
+
+        // --- 原有的識別監聽 ---
         targetEntity.addEventListener("targetFound", event => {
-            console.log("🎯 識別成功！1.png 圖片已垂直渲染");
+            console.log("🎯 識別成功！1.png 已依原始比例垂直渲染");
         });
 
         targetEntity.addEventListener("targetLost", event => {
