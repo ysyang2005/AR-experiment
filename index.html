@@ -20,17 +20,18 @@
         <a-assets>
             <a-asset-item id="obj-model" src="1.obj"></a-asset-item>
             
-            </a-assets>
+            <a-asset-item id="obj-mtl" src="1.mtl"></a-asset-item>
+        </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
             <a-obj-model id="ar-model"
                          src="#obj-model"
-                         /* mtl="#obj-mtl" 如果有材質請取消此註解 */
+                         mtl="#obj-mtl"
                          position="0 0 0" 
                          rotation="90 0 0" 
-                         scale="0.05 0.05 0.05">
+                         scale="1 1 1">
             </a-obj-model>
         </a-entity>
     </a-scene>
@@ -38,9 +39,8 @@
     <script>
         const targetEntity = document.querySelector('#ar-target');
 
-        // 監聽識別事件，方便在手機上測試時進 Log 排查
         targetEntity.addEventListener("targetFound", event => {
-            console.log("🎯 識別成功！3D 模型已渲染");
+            console.log("🎯 識別成功！3D 模型與材質已渲染");
         });
 
         targetEntity.addEventListener("targetLost", event => {
