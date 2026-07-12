@@ -38,10 +38,9 @@
         const imgResource = document.querySelector('#img-resource');
         const arImgEntity = document.querySelector('#ar-img');
 
-        // 定義一個設定尺寸的基準值（例如讓圖片的較長邊顯示為 1 個 A-Frame 單位）
-        const BASE_SIZE = 1;
+        // 核心修改：將基準尺寸從 1 改為 2，使圖片整體放大一倍
+        const BASE_SIZE = 2;
 
-        // 計算並設定圖片比例的函數
         function setARImageRatio() {
             if (imgResource.naturalWidth > 0 && imgResource.naturalHeight > 0) {
                 const width = imgResource.naturalWidth;
@@ -62,16 +61,14 @@
             }
         }
 
-        // 監聽圖片資源載入事件，確保獲取到 naturalWidth/Height
         if (imgResource.complete) {
-            setARImageRatio(); // 如果圖片已經快取完成了
+            setARImageRatio();
         } else {
-            imgResource.addEventListener('load', setARImageRatio); // 等待載入完成
+            imgResource.addEventListener('load', setARImageRatio);
         }
 
-        // --- 原有的識別監聽 ---
         targetEntity.addEventListener("targetFound", event => {
-            console.log("🎯 識別成功！1.png 已依原始比例垂直渲染");
+            console.log("🎯 識別成功！1.png 已放大兩倍並垂直渲染");
         });
 
         targetEntity.addEventListener("targetLost", event => {
