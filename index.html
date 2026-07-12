@@ -11,28 +11,27 @@
 </head>
 <body>
 
-    <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1;" 
+    <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
              renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
       
         <a-assets>
-            <a-asset-item id="obj-model" src="1.obj"></a-asset-item>
-            
-            <a-asset-item id="obj-mtl" src="1.mtl"></a-asset-item>
+            <img id="img-texture" src="1.png" crossorigin="anonymous">
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-            <a-obj-model id="ar-model"
-                         src="#obj-model"
-                         mtl="#obj-mtl"
-                         position="0 0 0" 
-                         rotation="90 0 0" 
-                         scale="0.5 0.5 0.5">
-            </a-obj-model>
+            <a-image id="ar-img"
+                     src="#img-texture"
+                     position="0 0 0" 
+                     rotation="90 0 0" 
+                     width="1" 
+                     height="1"
+                     material="shader: flat; transparent: true; opacity: 1.0; side: double;">
+            </a-image>
         </a-entity>
     </a-scene>
 
@@ -40,7 +39,7 @@
         const targetEntity = document.querySelector('#ar-target');
 
         targetEntity.addEventListener("targetFound", event => {
-            console.log("🎯 識別成功！3D 模型與材質已渲染");
+            console.log("🎯 識別成功！1.png 圖片已垂直渲染");
         });
 
         targetEntity.addEventListener("targetLost", event => {
