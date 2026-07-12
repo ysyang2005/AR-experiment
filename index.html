@@ -18,80 +18,33 @@
              device-orientation-permission-ui="enabled: false">
       
         <a-assets>
-            <video id="vid" 
-                   src="./1.mp4" 
-                   preload="auto" 
-                   loop="true" 
-                   muted="true" 
-                   playsinline
-                   webkit-playsinline
-                   crossorigin="anonymous">
-            </video>
-        </a-assets>
+            <a-asset-item id="obj-model" src="./1.obj"></a-asset-item>
+            
+            </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-            <a-video id="ar-video" 
-                     src="#vid" 
-                     position="0 0 0.01" 
-                     rotation="0 0 0"
-                     width="1" 
-                     height="1"
-                     material="shader: flat; transparent: true; opacity: 1.0; blending: normal; alphaTest: 0.001; depthWrite: false;">
-            </a-video>
+            <a-obj-model id="ar-model"
+                         src="#obj-model"
+                         /* mtl="#obj-mtl" 如果有材質檔，請取消此行註解 */
+                         position="0 0 0" 
+                         rotation="90 0 0" 
+                         scale="0.1 0.1 0.1">
+            </a-obj-model>
         </a-entity>
     </a-scene>
 
     <script>
-        const video = document.querySelector('#vid');
-        const arVideo = document.querySelector('#ar-video');
         const targetEntity = document.querySelector('#ar-target');
 
-        // 自動適應視頻寬高比，防止畫面被壓扁或拉伸
-        function resizeVideo() {
-            if (video.videoWidth > 0 && video.videoHeight > 0) {
-                const aspect = video.videoWidth / video.videoHeight;
-                if (aspect >= 1) {
-                    arVideo.setAttribute('width', '1');
-                    arVideo.setAttribute('height', (1 / aspect).toString());
-                } else {
-                    arVideo.setAttribute('height', '1');
-                    arVideo.setAttribute('width', aspect.toString());
-                }
-            }
-        }
-
-        video.addEventListener('loadedmetadata', resizeVideo);
-
-        // 強制播放控制（解決移動端瀏覽器安全限制）
-        const forcePlay = () => {
-            video.muted = true; // 必須保持靜音才能在移動端自動播放
-            resizeVideo();
-
-            video.play().catch((err) => {
-                console.log("移動端瀏覽器攔截自動播放，等待用戶點擊螢幕解鎖...", err);
-                
-                // 終極解鎖方案：只要用戶點擊或觸摸螢幕任意地方，立刻喚醒播放
-                const unlock = () => {
-                    video.play().then(() => resizeVideo());
-                    document.body.removeEventListener('click', unlock);
-                    document.body.removeEventListener('touchstart', unlock);
-                };
-                document.body.addEventListener('click', unlock);
-                document.body.addEventListener('touchstart', unlock);
-            });
-        };
-
-        // 監聽 MindAR 的識別事件
+        // 如果後續需要針對「識別成功/失敗」做額外的邏輯處理（例如音效或事件統計），可以保留這段監聽
         targetEntity.addEventListener("targetFound", event => {
-            console.log("識別成功，開始播放視頻");
-            forcePlay();
+            console.log("識別成功，模型已顯示");
         });
 
         targetEntity.addEventListener("targetLost", event => {
-            console.log("失去識別，暫停視頻");
-            video.pause();
+            console.log("失去識別");
         });
     </script>
 </body>
