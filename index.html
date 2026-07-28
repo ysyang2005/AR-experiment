@@ -7,42 +7,63 @@
     
     <style>
         body { margin: 0; overflow: hidden; }
-        
-        /* 啟動聲音提示浮層 */
+
+        /* 1. 點擊開啟音效提示層 */
         #audio-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.7);
             color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; justify-content: center; align-items: center;
             z-index: 9999;
             cursor: pointer;
             font-family: sans-serif;
         }
-        
         .overlay-btn {
-            background: #007bff;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 30px;
-            font-size: 18px;
-            font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            text-align: center;
+            background: #007bff; color: white;
+            padding: 15px 30px; border-radius: 30px;
+            font-size: 18px; font-weight: bold;
+        }
+
+        /* 2. 扣除掃碼口的背景 UI (請替換為您扣去掃碼口的圖片 bg_cutout.png) */
+        #ui-mask {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('bg_cutout.png'); /* 鏤空的背景圖 */
+            background-size: cover;
+            background-position: center;
+            pointer-events: none; /* 避免擋住相機觸控 */
+            z-index: 10;
+        }
+
+        /* 3. 補缺口用的完整背景圖 (預設透明) */
+        #bg-patch {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('1.png'); /* 完整的圖片一 */
+            background-size: cover;
+            background-position: center;
+            opacity: 0; /* 初始隱藏 */
+            transition: opacity 1.5s ease-in-out; /* 1.5 秒緩緩淡入補上 */
+            pointer-events: none;
+            z-index: 11; /* 層級高於遮罩 */
+        }
+
+        /* 補滿缺口時觸發的 CSS 類別 */
+        #bg-patch.filled {
+            opacity: 1;
         }
     </style>
 </head>
 <body>
 
-    <!-- 點擊解鎖聲音覆蓋層 -->
     <div id="audio-overlay">
         <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
     </div>
+
+    <div id="ui-mask"></div>
+
+    <div id="bg-patch"></div>
 
     <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
@@ -78,29 +99,20 @@
         const videoResource = document.querySelector('#video-resource');
         const arVideoEntity = document.querySelector('#ar-video');
         const audioOverlay = document.querySelector('#audio-overlay');
+        const bgPatch = document.querySelector('#bg-patch');
 
         const BASE_SIZE = 2;
-        let isAudioUnlocked = false;
 
         // 解鎖瀏覽器音訊限制
-        function unlockAudio() {
-            videoResource.muted = false; // 強制開啟聲音
-            // 預先 play & pause 一次以向瀏覽器獲取聲音播放權限
+        audioOverlay.addEventListener('click', () => {
+            videoResource.muted = false;
             videoResource.play().then(() => {
                 videoResource.pause();
-                isAudioUnlocked = true;
-                console.log("🔊 音訊權限已成功解鎖！");
-            }).catch(err => {
-                console.warn("音訊解鎖失敗:", err);
-            });
-
-            // 隱藏提示層
+            }).catch(err => console.warn(err));
             audioOverlay.style.display = 'none';
-        }
+        });
 
-        // 點擊頁面任意位置解鎖聲音
-        audioOverlay.addEventListener('click', unlockAudio);
-
+        // 動態計算 3D 影片比例
         function setARVideoRatio() {
             if (videoResource.videoWidth > 0 && videoResource.videoHeight > 0) {
                 const width = videoResource.videoWidth;
@@ -123,23 +135,30 @@
             videoResource.addEventListener('loadedmetadata', setARVideoRatio);
         }
 
+        // 識別成功邏輯
         targetEntity.addEventListener("targetFound", event => {
             console.log("🎯 識別成功！");
-            // 確保開啟聲音並播放
-            videoResource.muted = false;
             
+            // 1. 緩緩補上缺口 (淡入全圖)
+            bgPatch.classList.add('filled');
+
+            // 2. 播放影片
+            videoResource.muted = false;
             const playPromise = videoResource.play();
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
-                    console.log("自動有聲播放被阻擋，嘗試靜音播放作為後備方案方案:", error);
                     videoResource.muted = true;
                     videoResource.play();
                 });
             }
         });
 
+        // 失去識別邏輯
         targetEntity.addEventListener("targetLost", event => {
-            console.log("❌ 失去識別標籤，暫停影片");
+            console.log("❌ 失去目標");
+            
+            // 重新挖空背景，暫停影片
+            bgPatch.classList.remove('filled');
             videoResource.pause();
         });
     </script>
