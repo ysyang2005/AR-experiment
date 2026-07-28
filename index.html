@@ -18,61 +18,74 @@
              device-orientation-permission-ui="enabled: false">
       
         <a-assets>
-            <img id="img-resource" src="1.png" crossorigin="anonymous">
+            <!-- 1. 將 img 替換為 video -->
+            <video id="video-resource" 
+                   src="1.mp4" 
+                   preload="auto" 
+                   loop 
+                   crossorigin="anonymous" 
+                   playsinline 
+                   webkit-playsinline 
+                   muted>
+            </video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-            <a-image id="ar-img"
-                     src="#img-resource"
+            <!-- 2. 將 a-image 改為 a-video -->
+            <a-video id="ar-video"
+                     src="#video-resource"
                      position="0 0 0" 
                      rotation="90 0 0" 
-                     material="shader: flat; transparent: true; side: double; npot: true;">
-            </a-image>
+                     material="shader: flat; transparent: true; side: double;">
+            </a-video>
         </a-entity>
     </a-scene>
 
     <script>
         const targetEntity = document.querySelector('#ar-target');
-        const imgResource = document.querySelector('#img-resource');
-        const arImgEntity = document.querySelector('#ar-img');
+        const videoResource = document.querySelector('#video-resource');
+        const arVideoEntity = document.querySelector('#ar-video');
 
-        // 核心修改：將基準尺寸從 1 改為 2，使圖片整體放大一倍
         const BASE_SIZE = 2;
 
-        function setARImageRatio() {
-            if (imgResource.naturalWidth > 0 && imgResource.naturalHeight > 0) {
-                const width = imgResource.naturalWidth;
-                const height = imgResource.naturalHeight;
+        function setARVideoRatio() {
+            if (videoResource.videoWidth > 0 && videoResource.videoHeight > 0) {
+                const width = videoResource.videoWidth;
+                const height = videoResource.videoHeight;
                 const aspectRatio = width / height;
 
-                console.log(`圖片原始尺寸: ${width}x${height}, 比例: ${aspectRatio}`);
+                console.log(`影片原始尺寸: ${width}x${height}, 比例: ${aspectRatio}`);
 
                 if (aspectRatio >= 1) {
-                    // 橫向圖片或正方形
-                    arImgEntity.setAttribute('width', BASE_SIZE);
-                    arImgEntity.setAttribute('height', BASE_SIZE / aspectRatio);
+                    // 橫向影片或正方形
+                    arVideoEntity.setAttribute('width', BASE_SIZE);
+                    arVideoEntity.setAttribute('height', BASE_SIZE / aspectRatio);
                 } else {
-                    // 直向圖片
-                    arImgEntity.setAttribute('width', BASE_SIZE * aspectRatio);
-                    arImgEntity.setAttribute('height', BASE_SIZE);
+                    // 直向影片
+                    arVideoEntity.setAttribute('width', BASE_SIZE * aspectRatio);
+                    arVideoEntity.setAttribute('height', BASE_SIZE);
                 }
             }
         }
 
-        if (imgResource.complete) {
-            setARImageRatio();
+        // 當影片元數據（長寬高）載入完成後計算長寬比
+        if (videoResource.readyState >= 1) {
+            setARVideoRatio();
         } else {
-            imgResource.addEventListener('load', setARImageRatio);
+            videoResource.addEventListener('loadedmetadata', setARVideoRatio);
         }
 
+        // 3. 觸發 AR 識別時控制影片播放/暫停
         targetEntity.addEventListener("targetFound", event => {
-            console.log("🎯 識別成功！1.png 已放大兩倍並垂直渲染");
+            console.log("🎯 識別成功！開始播放 1.mp4");
+            videoResource.play();
         });
 
         targetEntity.addEventListener("targetLost", event => {
-            console.log("❌ 失去識別標籤");
+            console.log("❌ 失去識別標籤，暫停影片");
+            videoResource.pause();
         });
     </script>
 </body>
