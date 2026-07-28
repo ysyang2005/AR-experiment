@@ -6,25 +6,100 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            background-color: #2b261f; /* 沉穩木質底色 */
+        }
 
-        /* 1. 點擊開啟音效提示層 */
-        #audio-overlay {
+        /* ---------------- 吉卜力風格 Loading & Start 介面 ---------------- */
+        #loading-screen {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            display: flex; justify-content: center; align-items: center;
+            background: rgba(35, 30, 25, 0.88);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             z-index: 9999;
-            cursor: pointer;
-        }
-        .overlay-btn {
-            background: #007bff; color: white;
-            padding: 15px 30px; border-radius: 30px;
-            font-size: 18px; font-weight: bold;
+            transition: opacity 0.8s ease;
         }
 
-        /* 2. 底層：鏤空背景（請放您去背/扣去掃碼口的圖片 bg_cutout.jpg 或直接用 1.jpg 配合遮罩） */
+        /* 載入外框 - 吉卜力自然大地色系 */
+        .loading-box {
+            width: 260px;
+            padding: 24px;
+            background: #fdfbf7;
+            border: 3px solid #5a7247;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), inset 0 0 12px rgba(90, 114, 71, 0.1);
+            text-align: center;
+        }
+
+        .loading-title {
+            color: #4a3e3d;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            letter-spacing: 1px;
+        }
+
+        /* 進度條容器 */
+        .progress-bar-container {
+            width: 100%;
+            height: 14px;
+            background-color: #e8e2d5;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #c8beab;
+        }
+
+        /* 進度條動態填滿 */
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #8ba870 0%, #5a7247 100%);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            color: #7a6e65;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        /* 吉卜力風 Start 按鈕（預設隱藏） */
+        #start-btn {
+            display: none;
+            margin-top: 30px;
+            padding: 14px 48px;
+            background: #e07a5f;
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            border: 3px solid #2b1e1a;
+            border-radius: 30px;
+            box-shadow: 0 6px 0px #2b1e1a, 0 10px 20px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.5s ease;
+            opacity: 0;
+            animation: fadeIn 0.6s forwards;
+        }
+
+        #start-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px #2b1e1a;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* ---------------- AR & 背景 UI ---------------- */
         #bg-mask {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -35,7 +110,6 @@
             z-index: 10;
         }
 
-        /* 3. 中層：完整地圖 1.jpg（識別後緩緩補上缺口） */
         #bg-patch {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -43,45 +117,47 @@
             background-size: cover;
             background-position: center;
             opacity: 0;
-            transition: opacity 1.5s ease-in-out; /* 1.5秒緩緩補上缺口 */
+            transition: opacity 1.5s ease-in-out;
             pointer-events: none;
             z-index: 20;
         }
-        #bg-patch.filled {
-            opacity: 1;
-        }
+        #bg-patch.filled { opacity: 1; }
 
-        /* 4. 頂層：全螢幕影片 1.mp4 (預設隱藏，待補上缺口後顯示或同步淡入) */
         #full-screen-video {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            object-fit: cover; /* 讓影片鋪滿整個瀏覽器頁面 */
+            object-fit: cover;
             opacity: 0;
             transition: opacity 1s ease-in-out;
             pointer-events: none;
             z-index: 30;
         }
-        #full-screen-video.active {
-            opacity: 1;
-        }
+        #full-screen-video.active { opacity: 1; }
     </style>
 </head>
 <body>
 
-    <!-- 解鎖聲音遮罩 -->
-    <div id="audio-overlay">
-        <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入</div>
+    <!-- 1. 吉卜力風格載入與 Start 頁面 -->
+    <div id="loading-screen">
+        <div class="loading-box" id="loading-box">
+            <div class="loading-title">頁面載入中...</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="progress-text" id="progress-text">0%</div>
+        </div>
+        
+        <!-- 緩衝完畢後登場的 Start 按鈕 -->
+        <button id="start-btn">Start</button>
     </div>
 
-    <!-- UI 視覺層 -->
+    <!-- 2. AR 背景 UI 遮罩 -->
     <div id="bg-mask"></div>
     <div id="bg-patch"></div>
-    
-    <!-- 全螢幕 DOM 影片元件（替代原本 3D 空間的 a-video） -->
     <video id="full-screen-video" src="1.mp4" loop playsinline webkit-playsinline></video>
 
-    <!-- 心智識別引擎（後台運作，僅保留識別觸發功能） -->
-    <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
+    <!-- 3. AR 核心 Engine -->
+    <a-scene mindar-image="imageTargetSrc: targets.mind; autoStart: false; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
              renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
@@ -92,46 +168,98 @@
     </a-scene>
 
     <script>
+        const loadingScreen = document.querySelector('#loading-screen');
+        const loadingBox = document.querySelector('#loading-box');
+        const progressBar = document.querySelector('#progress-bar');
+        const progressText = document.querySelector('#progress-text');
+        const startBtn = document.querySelector('#start-btn');
+
         const targetEntity = document.querySelector('#ar-target');
-        const audioOverlay = document.querySelector('#audio-overlay');
         const bgPatch = document.querySelector('#bg-patch');
         const fsVideo = document.querySelector('#full-screen-video');
+        const arScene = document.querySelector('a-scene');
 
-        // 解鎖瀏覽器音訊限制
-        audioOverlay.addEventListener('click', () => {
+        // 監聽 1.mp4 影片緩衝進度
+        fsVideo.addEventListener('progress', updateBufferProgress);
+        fsVideo.addEventListener('canplaythrough', onBufferedComplete);
+
+        function updateBufferProgress() {
+            if (fsVideo.buffered.length > 0 && fsVideo.duration) {
+                const bufferedEnd = fsVideo.buffered.end(fsVideo.buffered.length - 1);
+                const percent = Math.min(100, Math.round((bufferedEnd / fsVideo.duration) * 100));
+                
+                progressBar.style.width = percent + '%';
+                progressText.innerText = percent + '%';
+
+                if (percent >= 100) {
+                    onBufferedComplete();
+                }
+            }
+        }
+
+        // 步驟 2：緩衝完畢，隱藏載入條，浮現 Start 按鈕
+        let isReady = false;
+        function onBufferedComplete() {
+            if (isReady) return;
+            isReady = true;
+
+            progressBar.style.width = '100%';
+            progressText.innerText = '100%';
+
+            setTimeout(() => {
+                loadingBox.style.display = 'none'; // 隱藏載入條
+                startBtn.style.display = 'inline-block'; // 浮現 Start
+            }, 500);
+        }
+
+        // 超時保險：若網路較慢或未精確觸發事件，強行啟動
+        setTimeout(() => {
+            if (!isReady) onBufferedComplete();
+        }, 8000);
+
+        // 步驟 3：點擊 Start 開始 AR 識別與解鎖音效
+        startBtn.addEventListener('click', () => {
+            // 預先播放/暫停解鎖聲音
             fsVideo.muted = false;
             fsVideo.play().then(() => {
                 fsVideo.pause();
-            }).catch(err => console.warn(err));
-            audioOverlay.style.display = 'none';
+            }).catch(err => console.warn("音效解鎖預處理:", err));
+
+            // 淡出移除 Loading 畫面
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 800);
+
+            // 啟動 MindAR 相機與識別系統
+            const mindarSystem = arScene.systems['mindar-image-system'];
+            if (mindarSystem) {
+                mindarSystem.start();
+            }
         });
 
-        // 識別成功邏輯
+        // ---------------- AR 識別觸發邏輯 ----------------
         targetEntity.addEventListener("targetFound", event => {
-            console.log("🎯 識別成功！開始執行頁面動畫與播放影片");
+            console.log("🎯 識別成功！");
             
-            // 1. 補上缺口 (淡入完整的 1.jpg)
+            // 1. 緩緩補上缺口 (1.jpg)
             bgPatch.classList.add('filled');
 
-            // 2. 播放全螢幕影片並淡入顯示
+            // 2. 播放全螢幕影片
             fsVideo.muted = false;
             const playPromise = fsVideo.play();
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
-                    fsVideo.muted = true; // 降級為靜音播放
+                    fsVideo.muted = true; // 靜音後備
                     fsVideo.play();
                 });
             }
             
-            // 可選擇讓影片在補口動畫完畢後顯示，或直接同步淡入：
             fsVideo.classList.add('active');
         });
 
-        // 失去識別邏輯
         targetEntity.addEventListener("targetLost", event => {
             console.log("❌ 失去目標");
-            
-            // 復原為缺口狀態並暫停隱藏影片
             bgPatch.classList.remove('filled');
             fsVideo.classList.remove('active');
             fsVideo.pause();
