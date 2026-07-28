@@ -10,10 +10,10 @@
             margin: 0; 
             overflow: hidden; 
             font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
-            background-color: #2b261f; /* 沉穩木質底色 */
+            background-color: #2b261f; 
         }
 
-        /* ---------------- 吉卜力風格 Loading & Start 介面 ---------------- */
+        /* ---------------- 1. 吉卜力風格 Loading & Start 介面 ---------------- */
         #loading-screen {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -27,14 +27,13 @@
             transition: opacity 0.8s ease;
         }
 
-        /* 載入外框 - 吉卜力自然大地色系 */
         .loading-box {
             width: 260px;
             padding: 24px;
             background: #fdfbf7;
             border: 3px solid #5a7247;
             border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), inset 0 0 12px rgba(90, 114, 71, 0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
             text-align: center;
         }
 
@@ -46,47 +45,59 @@
             letter-spacing: 1px;
         }
 
-        /* 進度條容器 */
         .progress-bar-container {
             width: 100%;
-            height: 14px;
+            height: 16px;
             background-color: #e8e2d5;
             border-radius: 10px;
             overflow: hidden;
             border: 1px solid #c8beab;
+            position: relative;
         }
 
-        /* 進度條動態填滿 */
+        /* 帶滾動斜紋的進度條 */
         .progress-bar {
             width: 0%;
             height: 100%;
-            background: linear-gradient(90deg, #8ba870 0%, #5a7247 100%);
+            background: linear-gradient(
+                45deg, 
+                #5a7247 25%, #8ba870 25%, 
+                #8ba870 50%, #5a7247 50%, 
+                #5a7247 75%, #8ba870 75%, 
+                #8ba870
+            );
+            background-size: 30px 30px;
             border-radius: 10px;
-            transition: width 0.3s ease;
+            transition: width 0.2s ease;
+            animation: moveStripes 1s linear infinite;
+        }
+
+        @keyframes moveStripes {
+            0% { background-position: 0 0; }
+            100% { background-position: 30px 0; }
         }
 
         .progress-text {
             color: #7a6e65;
-            font-size: 12px;
-            margin-top: 8px;
+            font-size: 13px;
+            margin-top: 10px;
+            font-weight: bold;
         }
 
-        /* 吉卜力風 Start 按鈕（預設隱藏） */
         #start-btn {
             display: none;
             margin-top: 30px;
             padding: 14px 48px;
             background: #e07a5f;
             color: #fff;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
             border: 3px solid #2b1e1a;
             border-radius: 30px;
             box-shadow: 0 6px 0px #2b1e1a, 0 10px 20px rgba(0, 0, 0, 0.2);
             cursor: pointer;
             letter-spacing: 2px;
-            transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.5s ease;
-            opacity: 0;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
             animation: fadeIn 0.6s forwards;
         }
 
@@ -96,10 +107,11 @@
         }
 
         @keyframes fadeIn {
+            from { opacity: 0; }
             to { opacity: 1; }
         }
 
-        /* ---------------- AR & 背景 UI ---------------- */
+        /* ---------------- 2. AR 背景 UI ---------------- */
         #bg-mask {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -133,36 +145,77 @@
             z-index: 30;
         }
         #full-screen-video.active { opacity: 1; }
+
+        /* ---------------- 3. 吉卜力風弧形文字與煙花 Canvas ---------------- */
+        #curved-text-container {
+            position: fixed;
+            top: 5vh;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90vw;
+            max-width: 500px;
+            height: 160px;
+            z-index: 40;
+            display: none;
+            cursor: pointer;
+            text-align: center;
+            filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.4));
+            animation: bounceIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+            100% { transform: translateX(-50%) scale(1); opacity: 1; }
+        }
+
+        #fireworks-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 50;
+        }
     </style>
 </head>
 <body>
 
-    <!-- 1. 吉卜力風格載入與 Start 頁面 -->
+    <!-- 1. 吉卜力 Loading & Start 介面 -->
     <div id="loading-screen">
         <div class="loading-box" id="loading-box">
-            <div class="loading-title">頁面載入中...</div>
+            <div class="loading-title">Loading Assets...</div>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progress-bar"></div>
             </div>
-            <div class="progress-text" id="progress-text">0%</div>
+            <div class="progress-text" id="progress-text">Loading 0%</div>
         </div>
-        
-        <!-- 緩衝完畢後登場的 Start 按鈕 -->
-        <button id="start-btn">Start</button>
+        <button id="start-btn">START</button>
     </div>
 
-    <!-- 2. AR 背景 UI 遮罩 -->
+    <!-- 2. UI 視覺與影片層 -->
     <div id="bg-mask"></div>
     <div id="bg-patch"></div>
-    <video id="full-screen-video" src="1.mp4" loop playsinline webkit-playsinline></video>
+    <video id="full-screen-video" src="1.mp4" playsinline webkit-playsinline></video>
 
-    <!-- 3. AR 核心 Engine -->
+    <!-- 3. 吉卜力弧形文字 "Happy everyday" -->
+    <div id="curved-text-container">
+        <svg viewBox="0 0 500 150" width="100%" height="100%">
+            <path id="curve" fill="transparent" d="M 50,120 A 200,100 0 0,1 450,120" />
+            <text fill="#fefae0" stroke="#3a5a40" stroke-width="3" font-size="42" font-weight="900" font-family="'Comic Sans MS', cursive, sans-serif" letter-spacing="3">
+                <textPath href="#curve" startOffset="50%" text-anchor="middle">
+                    Happy everyday
+                </textPath>
+            </text>
+        </svg>
+    </div>
+
+    <!-- 煙花 Canvas -->
+    <canvas id="fireworks-canvas"></canvas>
+
+    <!-- 4. AR 引擎 -->
     <a-scene mindar-image="imageTargetSrc: targets.mind; autoStart: false; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
              renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
-      
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
     </a-scene>
@@ -177,9 +230,10 @@
         const targetEntity = document.querySelector('#ar-target');
         const bgPatch = document.querySelector('#bg-patch');
         const fsVideo = document.querySelector('#full-screen-video');
+        const curvedText = document.querySelector('#curved-text-container');
         const arScene = document.querySelector('a-scene');
 
-        // 監聽 1.mp4 影片緩衝進度
+        // ---------------- 1. 滾動進度條與載入控制 ----------------
         fsVideo.addEventListener('progress', updateBufferProgress);
         fsVideo.addEventListener('canplaythrough', onBufferedComplete);
 
@@ -189,7 +243,7 @@
                 const percent = Math.min(100, Math.round((bufferedEnd / fsVideo.duration) * 100));
                 
                 progressBar.style.width = percent + '%';
-                progressText.innerText = percent + '%';
+                progressText.innerText = `Loading ${percent}%`;
 
                 if (percent >= 100) {
                     onBufferedComplete();
@@ -197,60 +251,53 @@
             }
         }
 
-        // 步驟 2：緩衝完畢，隱藏載入條，浮現 Start 按鈕
         let isReady = false;
         function onBufferedComplete() {
             if (isReady) return;
             isReady = true;
 
             progressBar.style.width = '100%';
-            progressText.innerText = '100%';
+            progressText.innerText = 'Loading 100%';
 
             setTimeout(() => {
-                loadingBox.style.display = 'none'; // 隱藏載入條
-                startBtn.style.display = 'inline-block'; // 浮現 Start
+                loadingBox.style.display = 'none';
+                startBtn.style.display = 'inline-block';
             }, 500);
         }
 
-        // 超時保險：若網路較慢或未精確觸發事件，強行啟動
-        setTimeout(() => {
-            if (!isReady) onBufferedComplete();
-        }, 8000);
+        setTimeout(() => { if (!isReady) onBufferedComplete(); }, 8000);
 
-        // 步驟 3：點擊 Start 開始 AR 識別與解鎖音效
+        // 點擊 Start
         startBtn.addEventListener('click', () => {
-            // 預先播放/暫停解鎖聲音
             fsVideo.muted = false;
-            fsVideo.play().then(() => {
-                fsVideo.pause();
-            }).catch(err => console.warn("音效解鎖預處理:", err));
+            fsVideo.play().then(() => fsVideo.pause()).catch(e => console.warn(e));
 
-            // 淡出移除 Loading 畫面
             loadingScreen.style.opacity = '0';
-            setTimeout(() => {
-                loadingScreen.style.display = 'none';
-            }, 800);
+            setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
 
-            // 啟動 MindAR 相機與識別系統
             const mindarSystem = arScene.systems['mindar-image-system'];
-            if (mindarSystem) {
-                mindarSystem.start();
-            }
+            if (mindarSystem) mindarSystem.start();
         });
 
-        // ---------------- AR 識別觸發邏輯 ----------------
-        targetEntity.addEventListener("targetFound", event => {
+        // ---------------- 2. AR 識別 & 強制重頭播放 ----------------
+        targetEntity.addEventListener("targetFound", () => {
             console.log("🎯 識別成功！");
             
-            // 1. 緩緩補上缺口 (1.jpg)
+            // 補上缺口
             bgPatch.classList.add('filled');
 
-            // 2. 播放全螢幕影片
+            // 隱藏可能殘留的 Happy everyday 文字
+            curvedText.style.display = 'none';
+
+            // 強制重頭播放影片
+            fsVideo.currentTime = 0;
             fsVideo.muted = false;
+            
             const playPromise = fsVideo.play();
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
-                    fsVideo.muted = true; // 靜音後備
+                    fsVideo.muted = true;
+                    fsVideo.currentTime = 0;
                     fsVideo.play();
                 });
             }
@@ -258,12 +305,87 @@
             fsVideo.classList.add('active');
         });
 
-        targetEntity.addEventListener("targetLost", event => {
-            console.log("❌ 失去目標");
+        targetEntity.addEventListener("targetLost", () => {
+            console.log("❌ 失去目標：停止影片");
+            
+            // 復原 UI
             bgPatch.classList.remove('filled');
             fsVideo.classList.remove('active');
+            
+            // 強制停止並重置影片時間
             fsVideo.pause();
+            fsVideo.currentTime = 0;
+
+            curvedText.style.display = 'none';
         });
+
+        // ---------------- 3. 影片播放結束事件：顯示 Happy everyday ----------------
+        fsVideo.addEventListener('ended', () => {
+            console.log("🎬 影片播放完成，顯示 Happy everyday");
+            curvedText.style.display = 'block';
+            // 自動爆發一次慶祝煙花
+            createFireworks(window.innerWidth / 2, window.innerHeight / 3);
+        });
+
+        // 點擊文字/螢幕爆發煙花
+        curvedText.addEventListener('click', (e) => {
+            createFireworks(e.clientX || window.innerWidth / 2, e.clientY || window.innerHeight / 3);
+        });
+
+        // ---------------- 4. Canvas 煙花粒子系統 ----------------
+        const canvas = document.getElementById('fireworks-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function createFireworks(x, y) {
+            const colors = ['#f4a261', '#e76f51', '#2a9d8f', '#e9c46a', '#a8dadc', '#ffb703'];
+            for (let i = 0; i < 60; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6 + 2;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    alpha: 1,
+                    decay: Math.random() * 0.02 + 0.015,
+                    size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        function animateFireworks() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.1; // 重力
+                p.alpha -= p.decay;
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+            requestAnimationFrame(animateFireworks);
+        }
+        animateFireworks();
     </script>
 </body>
 </html>
