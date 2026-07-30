@@ -55,7 +55,6 @@
             position: relative;
         }
 
-        /* 帶滾動斜紋的進度條 */
         .progress-bar {
             width: 0%;
             height: 100%;
@@ -233,6 +232,8 @@
         const curvedText = document.querySelector('#curved-text-container');
         const arScene = document.querySelector('a-scene');
 
+        let isActivated = false; // 紀錄是否已經完成首次識別解鎖
+
         // ---------------- 1. 滾動進度條與載入控制 ----------------
         fsVideo.addEventListener('progress', updateBufferProgress);
         fsVideo.addEventListener('canplaythrough', onBufferedComplete);
@@ -279,17 +280,22 @@
             if (mindarSystem) mindarSystem.start();
         });
 
-        // ---------------- 2. AR 識別 & 強制重頭播放 ----------------
+        // ---------------- 2. AR 識別 & 持續播放邏輯 ----------------
         targetEntity.addEventListener("targetFound", () => {
             console.log("🎯 識別成功！");
             
-            // 補上缺口
+            // 若已經觸發過且正在播放中，就不重複刷新時間
+            if (isActivated && !fsVideo.paused) return;
+            
+            isActivated = true;
+
+            // 補上缺口 (1.jpg)
             bgPatch.classList.add('filled');
 
-            // 隱藏可能殘留的 Happy everyday 文字
+            // 隱藏文字
             curvedText.style.display = 'none';
 
-            // 強制重頭播放影片
+            // 開始播放影片
             fsVideo.currentTime = 0;
             fsVideo.muted = false;
             
@@ -305,25 +311,15 @@
             fsVideo.classList.add('active');
         });
 
+        // 核心修改：挪開鏡頭時，不做任何暫停或隱藏動作，保持持續播放狀態
         targetEntity.addEventListener("targetLost", () => {
-            console.log("❌ 失去目標：停止影片");
-            
-            // 復原 UI
-            bgPatch.classList.remove('filled');
-            fsVideo.classList.remove('active');
-            
-            // 強制停止並重置影片時間
-            fsVideo.pause();
-            fsVideo.currentTime = 0;
-
-            curvedText.style.display = 'none';
+            console.log("ℹ️ 鏡頭移開識別區：保持常駐播放狀態");
         });
 
-        // ---------------- 3. 影片播放結束事件：顯示 Happy everyday ----------------
+        // ---------------- 3. 影片播放結束事件 ----------------
         fsVideo.addEventListener('ended', () => {
             console.log("🎬 影片播放完成，顯示 Happy everyday");
             curvedText.style.display = 'block';
-            // 自動爆發一次慶祝煙花
             createFireworks(window.innerWidth / 2, window.innerHeight / 3);
         });
 
