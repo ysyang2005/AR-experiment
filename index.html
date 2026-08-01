@@ -9,11 +9,11 @@
         body { 
             margin: 0; 
             overflow: hidden; 
-            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            font-family: "Ma Shan Zheng", "STKaiti", "KaiTi", "PingFang TC", sans-serif;
             background-color: #2b261f; 
         }
 
-        /* ---------------- 1. 吉卜力風格 Loading & Start 介面 ---------------- */
+        /* ---------------- 1. Loading & Start 介面 ---------------- */
         #loading-screen {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -110,7 +110,7 @@
             to { opacity: 1; }
         }
 
-        /* ---------------- 2. 基礎背景 UI ---------------- */
+        /* ---------------- 2. 背景圖層 ---------------- */
         #bg-mask {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -134,7 +134,7 @@
         }
         #bg-patch.filled { opacity: 1; }
 
-        /* ---------------- 3. 影片卡片容器 & 右上角關閉按鈕 ---------------- */
+        /* ---------------- 3. 卡片佈局 (外框與內播放框) ---------------- */
         #video-card-wrapper {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -144,7 +144,7 @@
             z-index: 30;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 1s ease-in-out; /* 緩緩出現/緩緩消失 */
+            transition: opacity 1s ease-in-out;
         }
 
         #video-card-wrapper.active {
@@ -152,80 +152,114 @@
             pointer-events: auto;
         }
 
-        /* 吉卜力風影片卡片框 */
-        .video-card {
+        /* 外層卡片框 */
+        .outer-card {
             position: relative;
             width: 85vw;
-            max-width: 420px;
-            max-height: 70vh;
+            max-width: 400px;
             background: #fdfbf7;
-            padding: 12px;
+            padding: 16px;
+            padding-bottom: 60px; /* 為底部文字與 Next 按鈕預留空間 */
             border: 4px solid #4a3e3d;
             border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 15px rgba(90, 114, 71, 0.15);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 15px rgba(90, 114, 71, 0.1);
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow: hidden;
+            box-sizing: border-box;
         }
 
-        .video-card video {
+        /* 內層視頻播放框區域 */
+        .video-box {
+            position: relative;
             width: 100%;
-            height: 100%;
-            max-height: 60vh;
-            object-fit: contain;
-            border-radius: 12px;
             background-color: #000;
+            border-radius: 12px;
+            border: 2px solid #2b1e1a;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* 右上角叉叉按鈕 (關閉按鈕) */
+        .video-box video {
+            width: 100%;
+            height: auto;
+            max-height: 55vh;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* [重點1] X 的位置：位於視頻播放框內部的右上角 */
         #close-btn {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 44px;
-            height: 44px;
-            background: #e07a5f;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+            background: rgba(43, 30, 26, 0.65);
             color: #ffffff;
-            border: 3px solid #2b1e1a;
+            border: 2px solid #ffffff;
             border-radius: 50%;
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            z-index: 40;
+            z-index: 10;
+            backdrop-filter: blur(4px);
             transition: transform 0.2s ease, background-color 0.2s ease;
         }
 
         #close-btn:active {
             transform: scale(0.9);
-            background: #c85f43;
+            background: rgba(224, 122, 95, 0.9);
         }
 
-        /* ---------------- 4. 弧形文字與煙花 Canvas ---------------- */
-        #curved-text-container {
+        /* [重點2] 視頻結束後顯示的古書法字體區域：位於外框底部 */
+        #calligraphy-text {
             position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            height: 120px;
-            z-index: 45;
-            display: none;
+            bottom: 16px;
+            left: 20px;
+            color: #2b1e1a;
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            opacity: 0;
+            transition: opacity 1s ease;
+            pointer-events: none;
+            /* 預設楷體/書法風格備用 */
+            font-family: "STKaiti", "KaiTi", "Ma Shan Zheng", cursive, serif;
+        }
+
+        #calligraphy-text.show {
+            opacity: 1;
+        }
+
+        /* [重點3] Next 按鈕：位於外框右下角，點擊跳轉 1.html */
+        #next-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 16px;
+            padding: 6px 18px;
+            background: #e07a5f;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: bold;
+            border: 2px solid #2b1e1a;
+            border-radius: 20px;
             cursor: pointer;
-            text-align: center;
-            filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.4));
-            animation: bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            box-shadow: 0 3px 0px #2b1e1a;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
         }
 
-        @keyframes bounceIn {
-            0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
-            100% { transform: translateX(-50%) scale(1); opacity: 1; }
+        #next-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0px #2b1e1a;
         }
 
+        /* ---------------- 4. 煙花 Canvas ---------------- */
         #fireworks-canvas {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -233,10 +267,12 @@
             z-index: 50;
         }
     </style>
+    <!-- 引入華康/古風書法字體（選用 Google Font） -->
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <!-- 1. 吉卜力 Loading & Start 介面 -->
+    <!-- 1. Loading & Start 介面 -->
     <div id="loading-screen">
         <div class="loading-box" id="loading-box">
             <div class="loading-title">Loading Assets...</div>
@@ -252,25 +288,23 @@
     <div id="bg-mask"></div>
     <div id="bg-patch"></div>
 
-    <!-- 3. 卡片框與全螢幕影片包覆層 -->
+    <!-- 3. 卡片佈局結構 -->
     <div id="video-card-wrapper">
-        <!-- 右上角關閉按鈕（叉叉） -->
-        <div id="close-btn" title="返回掃描">✕</div>
-
-        <div class="video-card">
-            <!-- 播放完畢後浮現的弧形文字 -->
-            <div id="curved-text-container">
-                <svg viewBox="0 0 500 150" width="100%" height="100%">
-                    <path id="curve" fill="transparent" d="M 50,120 A 200,100 0 0,1 450,120" />
-                    <text fill="#fefae0" stroke="#3a5a40" stroke-width="3" font-size="42" font-weight="900" font-family="'Comic Sans MS', cursive, sans-serif" letter-spacing="3">
-                        <textPath href="#curve" startOffset="50%" text-anchor="middle">
-                            Happy everyday
-                        </textPath>
-                    </text>
-                </svg>
+        <!-- 外層卡片框 -->
+        <div class="outer-card">
+            
+            <!-- 內層視頻播放框 -->
+            <div class="video-box">
+                <!-- X 的位置：位於視頻播放框內部右上角 -->
+                <div id="close-btn" title="返回掃描">✕</div>
+                <video id="card-video" src="1.mp4" playsinline webkit-playsinline></video>
             </div>
 
-            <video id="card-video" src="1.mp4" playsinline webkit-playsinline></video>
+            <!-- 視頻結束後顯示的古書法字體 -->
+            <div id="calligraphy-text">“ Happy everyday ”</div>
+
+            <!-- Next 按鈕：點擊跳轉 1.html -->
+            <button id="next-btn">Next</button>
         </div>
     </div>
 
@@ -299,12 +333,13 @@
         const videoCardWrapper = document.querySelector('#video-card-wrapper');
         const cardVideo = document.querySelector('#card-video');
         const closeBtn = document.querySelector('#close-btn');
-        const curvedText = document.querySelector('#curved-text-container');
+        const nextBtn = document.querySelector('#next-btn');
+        const calligraphyText = document.querySelector('#calligraphy-text');
         const arScene = document.querySelector('a-scene');
 
         let mindarSystem = null;
 
-        // ---------------- 1. 滾動進度條與載入控制 ----------------
+        // ---------------- 1. 資源加載條 ----------------
         cardVideo.addEventListener('progress', updateBufferProgress);
         cardVideo.addEventListener('canplaythrough', onBufferedComplete);
 
@@ -336,7 +371,7 @@
 
         setTimeout(() => { if (!isReady) onBufferedComplete(); }, 8000);
 
-        // 點擊 Start 進入識別
+        // 點擊 Start 啟動 AR
         startBtn.addEventListener('click', () => {
             cardVideo.muted = false;
             cardVideo.play().then(() => cardVideo.pause()).catch(e => console.warn(e));
@@ -348,20 +383,16 @@
             if (mindarSystem) mindarSystem.start();
         });
 
-        // ---------------- 2. AR 識別成功邏輯 ----------------
+        // ---------------- 2. 識別成功邏輯 ----------------
         targetEntity.addEventListener("targetFound", () => {
-            console.log("🎯 識別成功！關閉攝像頭，鎖定畫面並彈出卡片");
+            console.log("🎯 識別成功！停止相機串流並彈出視頻卡片");
 
-            // 1. 關閉相機與識別系統（節省效能與發熱）
             if (mindarSystem) {
                 mindarSystem.stop();
             }
 
-            // 2. 緩緩補上缺口 (1.jpg)
             bgPatch.classList.add('filled');
-
-            // 3. 顯示卡片框並開始播放影片
-            curvedText.style.display = 'none';
+            calligraphyText.classList.remove('show');
             videoCardWrapper.classList.add('active');
 
             cardVideo.currentTime = 0;
@@ -377,39 +408,42 @@
             }
         });
 
-        // ---------------- 3. 右上角關閉按鈕 (✕)：返回掃描頁面 ----------------
-        closeBtn.addEventListener('click', () => {
-            console.log("🔄 點擊關閉：緩緩淡出頁面並重啟掃描");
+        // ---------------- 3. X 按鈕：點擊關閉並重新掃描 ----------------
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log("🔄 點擊關閉，返回掃描頁面");
 
-            // 1. 影片暫停
             cardVideo.pause();
-
-            // 2. 緩緩淡出消失當前頁面與缺口背景
             videoCardWrapper.classList.remove('active');
             bgPatch.classList.remove('filled');
-            curvedText.style.display = 'none';
+            calligraphyText.classList.remove('show');
 
-            // 3. 待淡出動畫完畢後（1 秒後），重新啟動相機進行 AR 識別
             setTimeout(() => {
                 if (mindarSystem) {
                     mindarSystem.start();
-                    console.log("📷 相機與 AR 識別已重啟");
                 }
             }, 1000);
         });
 
-        // ---------------- 4. 影片播放結束事件 ----------------
+        // ---------------- 4. Next 按鈕：點擊跳轉 1.html ----------------
+        nextBtn.addEventListener('click', () => {
+            console.log("➡️ 點擊 Next，準備跳轉至 1.html");
+            document.body.style.transition = 'opacity 0.6s ease';
+            document.body.style.opacity = '0';
+            
+            setTimeout(() => {
+                window.location.href = '1.html';
+            }, 600);
+        });
+
+        // ---------------- 5. 視頻播放結束事件 ----------------
         cardVideo.addEventListener('ended', () => {
-            console.log("🎬 影片播放完成，顯示 Happy everyday");
-            curvedText.style.display = 'block';
+            console.log("🎬 視頻播放完成，顯示書法文字與煙花");
+            calligraphyText.classList.add('show');
             createFireworks(window.innerWidth / 2, window.innerHeight / 3);
         });
 
-        curvedText.addEventListener('click', (e) => {
-            createFireworks(e.clientX || window.innerWidth / 2, e.clientY || window.innerHeight / 3);
-        });
-
-        // ---------------- 5. Canvas 煙花粒子系統 ----------------
+        // ---------------- 6. Canvas 煙花系統 ----------------
         const canvas = document.getElementById('fireworks-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
