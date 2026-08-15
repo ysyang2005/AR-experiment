@@ -121,7 +121,7 @@
             z-index: 10;
         }
 
-        /* 背景缺口補全淡入速度控制 (調整為 2 秒漸顯) */
+        /* 補全背景：進出均採用 2.2 秒雙向平滑過渡 */
         #bg-patch {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -129,14 +129,14 @@
             background-size: cover;
             background-position: center;
             opacity: 0;
-            transition: opacity 2s cubic-bezier(0.25, 1, 0.5, 1);
+            transition: opacity 2.2s cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events: none;
             z-index: 20;
         }
         #bg-patch.filled { opacity: 1; }
 
         /* ---------------- 3. 卡片佈局 (外框與內播放框) ---------------- */
-        /* 核心修改：將 transition 時間改為 2.2 秒，達到「漸漸從 0% 到 100%」的平滑效果 */
+        /* 核心調整：卡片進入與退出保持精準一致的 2.2 秒淡入淡出 */
         #video-card-wrapper {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -146,7 +146,7 @@
             z-index: 30;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 2.2s cubic-bezier(0.25, 1, 0.5, 1); /* 減緩彈出速度 */
+            transition: opacity 2.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         #video-card-wrapper.active {
@@ -154,7 +154,6 @@
             pointer-events: auto;
         }
 
-        /* 外層卡片框 */
         .outer-card {
             position: relative;
             width: 85vw;
@@ -171,7 +170,6 @@
             box-sizing: border-box;
         }
 
-        /* 內層視頻播放框區域 */
         .video-box {
             position: relative;
             width: 100%;
@@ -192,7 +190,6 @@
             display: block;
         }
 
-        /* X 按鈕：位於視頻播放框內部右上角 */
         #close-btn {
             position: absolute;
             top: 10px;
@@ -219,7 +216,6 @@
             background: rgba(224, 122, 95, 0.9);
         }
 
-        /* 古書法字體區域 */
         #calligraphy-text {
             position: absolute;
             bottom: 16px;
@@ -238,7 +234,6 @@
             opacity: 1;
         }
 
-        /* Next 按鈕：位於外框右下角 */
         #next-btn {
             position: absolute;
             bottom: 12px;
@@ -375,20 +370,20 @@
             if (mindarSystem) mindarSystem.start();
         });
 
-        // ---------------- 2. 減緩彈出與淡出邏輯 ----------------
+        // ---------------- 2. 識別成功：漸漸淡入 (2.2s) ----------------
         targetEntity.addEventListener("targetFound", () => {
-            console.log("🎯 識別成功！開始緩漸淡入卡片...");
+            console.log("🎯 識別成功！開始 2.2 秒漸漸顯現卡片...");
 
             if (mindarSystem) {
                 mindarSystem.stop();
             }
 
-            // 觸發背景與卡片的 2.2 秒漸顯動畫
+            // 同時觸發背景與卡片的 2.2 秒漸顯動畫
             bgPatch.classList.add('filled');
             videoCardWrapper.classList.add('active');
             calligraphyText.classList.remove('show');
 
-            // 稍微延遲 300ms 再播放影片，讓視覺在卡片漸漸浮現時更自然
+            // 影片在卡片開始浮現 400ms 後再播放，體驗更為自然
             setTimeout(() => {
                 cardVideo.currentTime = 0;
                 cardVideo.muted = false;
@@ -401,38 +396,39 @@
                         cardVideo.play();
                     });
                 }
-            }, 300);
+            }, 400);
         });
 
-        // ---------------- 3. X 按鈕：點擊淡出關閉並重新掃描 ----------------
+        // ---------------- 3. X 按鈕：點擊進行對等的 2.2s 淡出退出 ----------------
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            console.log("🔄 點擊關閉，漸漸淡出並重啟掃描");
+            console.log("🔄 點擊關閉，開啟 2.2 秒漸漸淡出並重啟掃描");
 
+            // 1. 影片暫停
             cardVideo.pause();
             
-            // 觸發淡出動畫 (2.2 秒)
+            // 2. 同時觸發卡片與補全背景的 2.2 秒淡出動畫
             videoCardWrapper.classList.remove('active');
             bgPatch.classList.remove('filled');
             calligraphyText.classList.remove('show');
 
-            // 等待淡出動畫徹底完成後 (2000ms)，重新啟動 AR 相機
+            // 3. 嚴格等待 2.2 秒（2200ms）動畫完整播放完完、頁面完全透明後，才重啟相機
             setTimeout(() => {
                 if (mindarSystem) {
                     mindarSystem.start();
                 }
-            }, 2000);
+            }, 2200);
         });
 
         // ---------------- 4. Next 按鈕：點擊跳轉 1.html ----------------
         nextBtn.addEventListener('click', () => {
             console.log("➡️ 點擊 Next，準備跳轉至 1.html");
-            document.body.style.transition = 'opacity 0.8s ease';
+            document.body.style.transition = 'opacity 1s ease';
             document.body.style.opacity = '0';
             
             setTimeout(() => {
                 window.location.href = '1.html';
-            }, 800);
+            }, 1000);
         });
 
         // ---------------- 5. 視頻播放結束事件 ----------------
