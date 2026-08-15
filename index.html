@@ -121,7 +121,7 @@
             z-index: 10;
         }
 
-        /* 補全背景：進出均採用 2.2 秒雙向平滑過渡 */
+        /* 補全背景：初始 opacity: 0，觸發 .filled 時 2.2 秒漸變至 1 */
         #bg-patch {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -135,8 +135,7 @@
         }
         #bg-patch.filled { opacity: 1; }
 
-        /* ---------------- 3. 卡片佈局 (外框與內播放框) ---------------- */
-        /* 核心調整：卡片進入與退出保持精準一致的 2.2 秒淡入淡出 */
+        /* ---------------- 3. 卡片佈局 (0-100% 漸漸顯現) ---------------- */
         #video-card-wrapper {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -144,13 +143,13 @@
             justify-content: center;
             align-items: center;
             z-index: 30;
-            opacity: 0;
+            opacity: 0; /* 預設完全透明 */
             pointer-events: none;
-            transition: opacity 2.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: opacity 2.2s cubic-bezier(0.4, 0, 0.2, 1); /* 從 0% 慢慢變到 100% */
         }
 
         #video-card-wrapper.active {
-            opacity: 1;
+            opacity: 1; /* 觸發時達到 100% 顯現 */
             pointer-events: auto;
         }
 
@@ -370,20 +369,23 @@
             if (mindarSystem) mindarSystem.start();
         });
 
-        // ---------------- 2. 識別成功：漸漸淡入 (2.2s) ----------------
+        // ---------------- 2. 識別成功：從 0% 到 100% 平滑顯現 ----------------
         targetEntity.addEventListener("targetFound", () => {
-            console.log("🎯 識別成功！開始 2.2 秒漸漸顯現卡片...");
+            console.log("🎯 識別成功！開始 0-100% 平滑淡入...");
 
             if (mindarSystem) {
                 mindarSystem.stop();
             }
 
-            // 同時觸發背景與卡片的 2.2 秒漸顯動畫
-            bgPatch.classList.add('filled');
-            videoCardWrapper.classList.add('active');
+            // 給予一小段 50ms 延遲，確保瀏覽器正確渲染從 0 開始的動畫
+            setTimeout(() => {
+                bgPatch.classList.add('filled');
+                videoCardWrapper.classList.add('active');
+            }, 50);
+
             calligraphyText.classList.remove('show');
 
-            // 影片在卡片開始浮現 400ms 後再播放，體驗更為自然
+            // 稍微延遲播放影片，等卡片漸漸出現後再開始播放
             setTimeout(() => {
                 cardVideo.currentTime = 0;
                 cardVideo.muted = false;
@@ -399,20 +401,19 @@
             }, 400);
         });
 
-        // ---------------- 3. X 按鈕：點擊進行對等的 2.2s 淡出退出 ----------------
+        // ---------------- 3. X 按鈕：100% 到 0% 淡出並關閉 ----------------
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            console.log("🔄 點擊關閉，開啟 2.2 秒漸漸淡出並重啟掃描");
+            console.log("🔄 點擊關閉，從 100% 漸漸淡出至 0%");
 
-            // 1. 影片暫停
             cardVideo.pause();
             
-            // 2. 同時觸發卡片與補全背景的 2.2 秒淡出動畫
+            // 觸發淡出
             videoCardWrapper.classList.remove('active');
             bgPatch.classList.remove('filled');
             calligraphyText.classList.remove('show');
 
-            // 3. 嚴格等待 2.2 秒（2200ms）動畫完整播放完完、頁面完全透明後，才重啟相機
+            // 等待 2.2 秒動畫完全播放完畢（回到 0%）後重啟相機
             setTimeout(() => {
                 if (mindarSystem) {
                     mindarSystem.start();
