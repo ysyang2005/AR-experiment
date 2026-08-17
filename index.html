@@ -9,15 +9,15 @@
         body { 
             margin: 0; 
             overflow: hidden; 
-            font-family: "Ma Shan Zheng", "STKaiti", "KaiTi", "PingFang TC", sans-serif;
-            background-color: #2b261f; 
+            font-family: "STKaiti", "KaiTi", cursive, serif;
+            background-color: #000; 
         }
 
-        /* ---------------- 1. Loading & Start 介面 ---------------- */
+        /* ---------------- 1. Loading & Start 界面 ---------------- */
         #loading-screen {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(35, 30, 25, 0.88);
+            background: rgba(20, 16, 14, 0.92);
             backdrop-filter: blur(8px);
             display: flex;
             flex-direction: column;
@@ -33,7 +33,7 @@
             background: #fdfbf7;
             border: 3px solid #5a7247;
             border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
             text-align: center;
         }
 
@@ -52,19 +52,12 @@
             border-radius: 10px;
             overflow: hidden;
             border: 1px solid #c8beab;
-            position: relative;
         }
 
         .progress-bar {
             width: 0%;
             height: 100%;
-            background: linear-gradient(
-                45deg, 
-                #5a7247 25%, #8ba870 25%, 
-                #8ba870 50%, #5a7247 50%, 
-                #5a7247 75%, #8ba870 75%, 
-                #8ba870
-            );
+            background: linear-gradient(45deg, #5a7247 25%, #8ba870 25%, #8ba870 50%, #5a7247 50%, #5a7247 75%, #8ba870 75%, #8ba870);
             background-size: 30px 30px;
             border-radius: 10px;
             transition: width 0.2s ease;
@@ -96,8 +89,7 @@
             box-shadow: 0 6px 0px #2b1e1a, 0 10px 20px rgba(0, 0, 0, 0.2);
             cursor: pointer;
             letter-spacing: 2px;
-            transition: transform 0.1s ease, box-shadow 0.1s ease;
-            animation: fadeIn 0.6s forwards;
+            transition: transform 0.1s ease;
         }
 
         #start-btn:active {
@@ -105,152 +97,38 @@
             box-shadow: 0 2px 0px #2b1e1a;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        /* ---------------- 2. 背景与沉浸式 Vignette 滤镜层 ---------------- */
-        #bg-mask {
+        /* ---------------- 2. 直接作用于相机的黑夜聚光暗角 ---------------- */
+        #ar-vignette {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url('bg_cutout.jpg'); 
-            background-size: cover;
-            background-position: center;
+            /* 中心透明聚焦猫头鹰，四周逐渐加深变暗 */
+            background: radial-gradient(circle at 50% 50%, rgba(10, 8, 6, 0.0) 20%, rgba(10, 8, 6, 0.85) 70%);
+            backdrop-filter: blur(2px);
+            opacity: 0;
             pointer-events: none;
             z-index: 10;
+            transition: opacity 2.0s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 以猫头鹰为中心，周围现实画面逐渐加深、变暗 */
-        #vignette-layer {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: radial-gradient(circle at 50% 45%, rgba(15, 12, 10, 0.0) 15%, rgba(15, 12, 10, 0.88) 75%);
-            backdrop-filter: blur(4px);
-            opacity: 0;
-            transition: opacity 2.2s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-            z-index: 15;
-        }
-        #vignette-layer.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        #bg-patch {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url('1.jpg');
-            background-size: cover;
-            background-position: center;
-            opacity: 0;
-            transition: opacity 2.2s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-            z-index: 20;
-        }
-        #bg-patch.filled { opacity: 1; }
-
-        /* 隐藏无缝播放的视频 */
-        #hidden-video {
-            display: none;
-        }
-
-        /* ---------------- 3. 悬浮交互 UI ---------------- */
-        #close-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 36px;
-            height: 36px;
-            background: rgba(43, 30, 26, 0.65);
-            color: #ffffff;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            font-size: 20px;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            z-index: 40;
-            opacity: 0;
-            pointer-events: none;
-            backdrop-filter: blur(4px);
-            transition: opacity 1.5s ease, transform 0.2s ease;
-        }
-        #close-btn.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        #close-btn:active {
-            transform: scale(0.9);
-            background: rgba(224, 122, 95, 0.9);
-        }
-
-        #calligraphy-text {
-            position: fixed;
-            bottom: 12vh;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #fdfbf7;
-            font-size: 26px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
-            opacity: 0;
-            transition: opacity 1.5s ease;
-            pointer-events: none;
-            z-index: 40;
-            white-space: nowrap;
-            font-family: "STKaiti", "KaiTi", "Ma Shan Zheng", cursive, serif;
-        }
-        #calligraphy-text.show {
+        #ar-vignette.active {
             opacity: 1;
         }
 
-        #next-btn {
-            position: fixed;
-            bottom: 4vh;
-            right: 20px;
-            padding: 8px 22px;
-            background: #e07a5f;
-            color: #ffffff;
-            font-size: 16px;
-            font-weight: bold;
-            border: 2px solid #2b1e1a;
-            border-radius: 20px;
-            cursor: pointer;
-            box-shadow: 0 3px 0px #2b1e1a;
-            z-index: 40;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 1.5s ease, transform 0.1s ease, box-shadow 0.1s ease;
-        }
-        #next-btn.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        #next-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 1px 0px #2b1e1a;
-        }
-
-        /* ---------------- 4. 烟花 Canvas ---------------- */
+        /* ---------------- 3. AR 空间烟花 Canvas ---------------- */
         #fireworks-canvas {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
             pointer-events: none;
-            z-index: 50;
+            z-index: 20;
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <!-- 1. Loading & Start 介面 -->
+    <!-- 1. Loading 界面 -->
     <div id="loading-screen">
         <div class="loading-box" id="loading-box">
-            <div class="loading-title">Loading Assets...</div>
+            <div class="loading-title">Loading Sanctuary...</div>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progress-bar"></div>
             </div>
@@ -259,29 +137,50 @@
         <button id="start-btn">START</button>
     </div>
 
-    <!-- 2. UI 视觉层与后台音频/视频 -->
-    <div id="bg-mask"></div>
-    <div id="vignette-layer"></div>
-    <div id="bg-patch"></div>
-    
-    <video id="hidden-video" src="1.mp4" playsinline webkit-playsinline></video>
+    <!-- 2. 相机画面上方的暗角压暗滤镜 -->
+    <div id="ar-vignette"></div>
 
-    <!-- 3. 悬浮交互 UI（无卡片包裹） -->
-    <div id="close-btn" title="返回扫描">✕</div>
-    <div id="calligraphy-text">“ Happy everyday ”</div>
-    <button id="next-btn">Next</button>
+    <!-- 3. 后台播放音频/视频源 -->
+    <video id="audio-source" src="1.mp4" playsinline webkit-playsinline style="display:none;"></video>
 
-    <!-- 烟花 Canvas -->
+    <!-- 4. AR 空间粒子烟花 -->
     <canvas id="fireworks-canvas"></canvas>
 
-    <!-- 4. AR 引擎 -->
+    <!-- 5. 原生 AR 场景：识别后直接在实体猫头鹰周围叠加 3D 浮空预言 -->
     <a-scene mindar-image="imageTargetSrc: targets.mind; autoStart: false; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
              renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
+        
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-        <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
+
+        <!-- 识别目标点：实体猫头鹰 -->
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+            
+            <!-- 3D 浮空情绪文字：直接置于猫头鹰正上方 -->
+            <a-text id="ar-text" 
+                    value="Happy Everyday" 
+                    position="0 0.5 0" 
+                    align="center" 
+                    color="#fdfbf7" 
+                    width="2.5"
+                    visible="false"
+                    animation="property: position; to: 0 0.58 0; dir: alternate; dur: 2000; loop: true; easing: easeInOutSine">
+            </a-text>
+
+            <!-- 猫头鹰底部的微光光环 -->
+            <a-ring id="ar-ring" 
+                    position="0 -0.2 0" 
+                    rotation="-90 0 0" 
+                    radius-inner="0.3" 
+                    radius-outer="0.4" 
+                    color="#e07a5f" 
+                    opacity="0"
+                    visible="false">
+            </a-ring>
+
+        </a-entity>
     </a-scene>
 
     <script>
@@ -291,53 +190,38 @@
         const progressText = document.querySelector('#progress-text');
         const startBtn = document.querySelector('#start-btn');
 
+        const arVignette = document.querySelector('#ar-vignette');
         const targetEntity = document.querySelector('#ar-target');
-        const bgPatch = document.querySelector('#bg-patch');
-        const vignetteLayer = document.querySelector('#vignette-layer');
-        const cardVideo = document.querySelector('#hidden-video');
-        const closeBtn = document.querySelector('#close-btn');
-        const nextBtn = document.querySelector('#next-btn');
-        const calligraphyText = document.querySelector('#calligraphy-text');
+        const arText = document.querySelector('#ar-text');
+        const arRing = document.querySelector('#ar-ring');
+        const mediaSource = document.querySelector('#audio-source');
         const arScene = document.querySelector('a-scene');
 
         let mindarSystem = null;
 
-        // ---------------- 1. 资源加载条 ----------------
-        cardVideo.addEventListener('progress', updateBufferProgress);
-        cardVideo.addEventListener('canplaythrough', onBufferedComplete);
-
-        function updateBufferProgress() {
-            if (cardVideo.buffered.length > 0 && cardVideo.duration) {
-                const bufferedEnd = cardVideo.buffered.end(cardVideo.buffered.length - 1);
-                const percent = Math.min(100, Math.round((bufferedEnd / cardVideo.duration) * 100));
-                
+        // ---------------- 1. 加载资源 ----------------
+        mediaSource.addEventListener('progress', () => {
+            if (mediaSource.buffered.length > 0 && mediaSource.duration) {
+                const percent = Math.min(100, Math.round((mediaSource.buffered.end(mediaSource.buffered.length - 1) / mediaSource.duration) * 100));
                 progressBar.style.width = percent + '%';
                 progressText.innerText = `Loading ${percent}%`;
-
-                if (percent >= 100) onBufferedComplete();
+                if (percent >= 100) onReady();
             }
-        }
+        });
 
-        let isReady = false;
-        function onBufferedComplete() {
-            if (isReady) return;
-            isReady = true;
-
+        function onReady() {
             progressBar.style.width = '100%';
-            progressText.innerText = 'Loading 100%';
-
+            progressText.innerText = 'Ready';
             setTimeout(() => {
                 loadingBox.style.display = 'none';
                 startBtn.style.display = 'inline-block';
-            }, 500);
+            }, 300);
         }
+        setTimeout(onReady, 5000);
 
-        setTimeout(() => { if (!isReady) onBufferedComplete(); }, 8000);
-
-        // 点击 Start 启动 AR
         startBtn.addEventListener('click', () => {
-            cardVideo.muted = false;
-            cardVideo.play().then(() => cardVideo.pause()).catch(e => console.warn(e));
+            mediaSource.muted = false;
+            mediaSource.play().then(() => mediaSource.pause()).catch(e => console.warn(e));
 
             loadingScreen.style.opacity = '0';
             setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
@@ -346,80 +230,39 @@
             if (mindarSystem) mindarSystem.start();
         });
 
-        // ---------------- 2. 识别成功：暗化四周，聚焦猫头鹰 ----------------
+        // ---------------- 2. 原生 AR 识别：扫码框内直接呈现氛围 ----------------
         targetEntity.addEventListener("targetFound", () => {
-            console.log("🎯 识别成功！四周画面加深变暗，聚焦猫头鹰...");
+            console.log("🎯 在扫码框内捕获猫头鹰！直接渲染氛围");
 
-            if (mindarSystem) {
-                mindarSystem.stop();
-            }
+            // 1. 相机四周加深变暗，聚光在猫头鹰身上
+            arVignette.classList.add('active');
 
-            // 平滑启动暗角与关闭按钮
-            setTimeout(() => {
-                bgPatch.classList.add('filled');
-                vignetteLayer.classList.add('active');
-                closeBtn.classList.add('show');
-                nextBtn.classList.add('show');
-            }, 50);
+            // 2. 显示 AR 3D 浮空元素与底座光环
+            arText.setAttribute('visible', 'true');
+            arRing.setAttribute('visible', 'true');
+            arRing.setAttribute('animation', 'property: components.material.material.opacity; to: 0.6; dur: 1500; easing: easeInOutSine');
 
-            calligraphyText.classList.remove('show');
-
-            // 播放视频/声音
-            setTimeout(() => {
-                cardVideo.currentTime = 0;
-                cardVideo.muted = false;
-                
-                const playPromise = cardVideo.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        cardVideo.muted = true;
-                        cardVideo.currentTime = 0;
-                        cardVideo.play();
-                    });
-                }
-            }, 400);
+            // 3. 播放背景声音/音频
+            mediaSource.currentTime = 0;
+            mediaSource.muted = false;
+            mediaSource.play().catch(e => console.warn(e));
         });
 
-        // ---------------- 3. X 按钮：淡出暗角并重启相机 ----------------
-        closeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            console.log("🔄 点击关闭，淡出暗角效果");
-
-            cardVideo.pause();
-            
-            vignetteLayer.classList.remove('active');
-            bgPatch.classList.remove('filled');
-            closeBtn.classList.remove('show');
-            nextBtn.classList.remove('show');
-            calligraphyText.classList.remove('show');
-
-            // 等待 2.2 秒淡出动画结束后重启相机
-            setTimeout(() => {
-                if (mindarSystem) {
-                    mindarSystem.start();
-                }
-            }, 2200);
+        // 失去焦点时平滑恢复镜头
+        targetEntity.addEventListener("targetLost", () => {
+            console.log("🔍 离开镜头，恢复普通扫描状态");
+            arVignette.classList.remove('active');
+            arText.setAttribute('visible', 'false');
+            arRing.setAttribute('visible', 'false');
+            mediaSource.pause();
         });
 
-        // ---------------- 4. Next 按钮：点击跳转 ----------------
-        nextBtn.addEventListener('click', () => {
-            console.log("➡️ 点击 Next，跳转至 1.html");
-            document.body.style.transition = 'opacity 1s ease';
-            document.body.style.opacity = '0';
-            
-            setTimeout(() => {
-                window.location.href = '1.html';
-            }, 1000);
+        // ---------------- 3. 播放结束触发粒子烟花 ----------------
+        mediaSource.addEventListener('ended', () => {
+            createFireworks(window.innerWidth / 2, window.innerHeight * 0.4);
         });
 
-        // ---------------- 5. 音效/视频播放结束事件 ----------------
-        cardVideo.addEventListener('ended', () => {
-            console.log("🎬 播放完成，浮现预言文字与烟花");
-            calligraphyText.classList.add('show');
-            createFireworks(window.innerWidth / 2, window.innerHeight / 3);
-        });
-
-        // ---------------- 6. Canvas 烟花系统 ----------------
+        // ---------------- 4. 空间烟花粒子 ----------------
         const canvas = document.getElementById('fireworks-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -432,19 +275,18 @@
         resizeCanvas();
 
         function createFireworks(x, y) {
-            const colors = ['#f4a261', '#e76f51', '#2a9d8f', '#e9c46a', '#a8dadc', '#ffb703'];
-            for (let i = 0; i < 60; i++) {
+            const colors = ['#f4a261', '#e76f51', '#2a9d8f', '#e9c46a', '#ffb703'];
+            for (let i = 0; i < 50; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 6 + 2;
+                const speed = Math.random() * 5 + 2;
                 particles.push({
-                    x: x,
-                    y: y,
+                    x: x, y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
                     color: colors[Math.floor(Math.random() * colors.length)],
                     alpha: 1,
                     decay: Math.random() * 0.02 + 0.015,
-                    size: Math.random() * 4 + 2
+                    size: Math.random() * 3 + 2
                 });
             }
         }
@@ -455,7 +297,7 @@
                 let p = particles[i];
                 p.x += p.vx;
                 p.y += p.vy;
-                p.vy += 0.1;
+                p.vy += 0.08;
                 p.alpha -= p.decay;
 
                 if (p.alpha <= 0) {
