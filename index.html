@@ -13,7 +13,7 @@
             background-color: #000; 
         }
 
-        /* ---------------- 1. Loading & Start 界面 ---------------- */
+        /* ---------------- 1. Loading 界面 ---------------- */
         #loading-screen {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -97,24 +97,7 @@
             box-shadow: 0 2px 0px #2b1e1a;
         }
 
-        /* ---------------- 2. 直接作用于相机的黑夜聚光暗角 ---------------- */
-        #ar-vignette {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            /* 中心透明聚焦猫头鹰，四周逐渐加深变暗 */
-            background: radial-gradient(circle at 50% 50%, rgba(10, 8, 6, 0.0) 20%, rgba(10, 8, 6, 0.85) 70%);
-            backdrop-filter: blur(2px);
-            opacity: 0;
-            pointer-events: none;
-            z-index: 10;
-            transition: opacity 2.0s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        #ar-vignette.active {
-            opacity: 1;
-        }
-
-        /* ---------------- 3. AR 空间烟花 Canvas ---------------- */
+        /* ---------------- 2. AR 空间粒子烟花 ---------------- */
         #fireworks-canvas {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -128,57 +111,103 @@
     <!-- 1. Loading 界面 -->
     <div id="loading-screen">
         <div class="loading-box" id="loading-box">
-            <div class="loading-title">Loading Sanctuary...</div>
+            <div class="loading-title">召唤森林圣坛...</div>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progress-bar"></div>
             </div>
             <div class="progress-text" id="progress-text">Loading 0%</div>
         </div>
-        <button id="start-btn">START</button>
+        <button id="start-btn">开启契约</button>
     </div>
 
-    <!-- 2. 相机画面上方的暗角压暗滤镜 -->
-    <div id="ar-vignette"></div>
-
-    <!-- 3. 后台播放音频/视频源 -->
+    <!-- 2. 后台音频源 -->
     <video id="audio-source" src="1.mp4" playsinline webkit-playsinline style="display:none;"></video>
 
-    <!-- 4. AR 空间粒子烟花 -->
+    <!-- 3. AR 空间粒子烟花 Canvas -->
     <canvas id="fireworks-canvas"></canvas>
 
-    <!-- 5. 原生 AR 场景：识别后直接在实体猫头鹰周围叠加 3D 浮空预言 -->
+    <!-- 4. 原生 AR 场景：视觉剧场塑造 -->
     <a-scene mindar-image="imageTargetSrc: targets.mind; autoStart: false; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
-             renderer="colorManagement: true, physicallyCorrectLights" 
+             renderer="colorManagement: true, physicallyCorrectLights: true" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
         
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <!-- 识别目标点：实体猫头鹰 -->
+        <!-- 识别目标点：实体猫头鹰胸针 -->
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+
+            <!-- ==================== 背景第二重：森林圣坛的浮现 ==================== -->
             
-            <!-- 3D 浮空情绪文字：直接置于猫头鹰正上方 -->
+            <!-- 两侧及后方生长出的橡树枝桠与苔藓 (左/右/后) -->
+            <a-entity id="forest-canopy" visible="false">
+                <!-- 左侧维多利亚古木枝桠 -->
+                <a-ring position="-0.7 0.2 -0.1" rotation="0 30 0" radius-inner="0.35" radius-outer="0.4" color="#2c3a23" opacity="0.75"
+                        animation="property: rotation; to: 0 35 5; dir: alternate; dur: 4000; loop: true; easing: easeInOutSine"></a-ring>
+                <!-- 右侧古木枝桠 -->
+                <a-ring position="0.7 0.2 -0.1" rotation="0 -30 0" radius-inner="0.35" radius-outer="0.4" color="#2c3a23" opacity="0.75"
+                        animation="property: rotation; to: 0 -35 -5; dir: alternate; dur: 4500; loop: true; easing: easeInOutSine"></a-ring>
+                
+                <!-- 枝桠上的荧光节点（夜光真菌/金蓝光点） -->
+                <a-sphere position="-0.5 0.5 0" radius="0.03" color="#64dfdf" opacity="0.9"
+                          animation="property: components.material.material.opacity; to: 0.3; dir: alternate; dur: 1200; loop: true"></a-sphere>
+                <a-sphere position="0.5 0.4 0" radius="0.025" color="#f7d674" opacity="0.9"
+                          animation="property: components.material.material.opacity; to: 0.2; dir: alternate; dur: 1600; loop: true"></a-sphere>
+                <a-sphere position="-0.3 -0.1 0.05" radius="0.02" color="#64dfdf" opacity="0.8"
+                          animation="property: components.material.material.opacity; to: 0.3; dir: alternate; dur: 1400; loop: true"></a-sphere>
+                <a-sphere position="0.4 -0.05 0.05" radius="0.02" color="#f7d674" opacity="0.8"
+                          animation="property: components.material.material.opacity; to: 0.2; dir: alternate; dur: 1800; loop: true"></a-sphere>
+            </a-entity>
+
+            <!-- 猫头鹰脚下：暗夜水面与金色涟漪 -->
+            <a-entity id="water-ripples" position="0 -0.45 0" rotation="-90 0 0" visible="false">
+                <!-- 清澈暗夜水面基座 -->
+                <a-circle radius="0.6" color="#1a2421" opacity="0.65"></a-circle>
+                <!-- 呼吸节奏的金色涟漪 1 -->
+                <a-ring radius-inner="0.1" radius-outer="0.12" color="#f7d674" opacity="0.8"
+                        animation__expand="property: geometry.radiusOuter; to: 0.58; dur: 3000; loop: true; easing: easeOutQuad"
+                        animation__fade="property: components.material.material.opacity; to: 0; dur: 3000; loop: true; easing: easeOutQuad">
+                </a-ring>
+                <!-- 金色涟漪 2 (错峰交替) -->
+                <a-ring radius-inner="0.05" radius-outer="0.07" color="#f7d674" opacity="0.8"
+                        animation__expand="property: geometry.radiusOuter; to: 0.58; dur: 3000; delay: 1500; loop: true; easing: easeOutQuad"
+                        animation__fade="property: components.material.material.opacity; to: 0; dur: 3000; delay: 1500; loop: true; easing: easeOutQuad">
+                </a-ring>
+            </a-entity>
+
+            <!-- ==================== 背景第三重：月华与光晕流转 ==================== -->
+
+            <!-- 1. 正后方的微缩满月 -->
+            <a-circle id="moon" 
+                      position="0 0.2 -0.2" 
+                      radius="0.45" 
+                      color="#fffcf2" 
+                      opacity="0"
+                      visible="false">
+            </a-circle>
+
+            <!-- 2. 散射梦幻光晕（廷达尔光轴与边缘金光） -->
+            <a-ring id="tyndall-halo" 
+                    position="0 0.2 -0.18" 
+                    radius-inner="0.45" 
+                    radius-outer="0.7" 
+                    color="#f7d674" 
+                    opacity="0"
+                    visible="false"
+                    animation="property: scale; to: 1.08 1.08 1.08; dir: alternate; dur: 2500; loop: true; easing: easeInOutSine">
+            </a-ring>
+
+            <!-- 3. 3D 浮空情绪文字 -->
             <a-text id="ar-text" 
                     value="Happy Everyday" 
-                    position="0 0.5 0" 
+                    position="0 0.65 0.1" 
                     align="center" 
-                    color="#fdfbf7" 
-                    width="2.5"
+                    color="#ffffff" 
+                    width="2.6"
                     visible="false"
-                    animation="property: position; to: 0 0.58 0; dir: alternate; dur: 2000; loop: true; easing: easeInOutSine">
+                    animation="property: position; to: 0 0.7 0.1; dir: alternate; dur: 2000; loop: true; easing: easeInOutSine">
             </a-text>
-
-            <!-- 猫头鹰底部的微光光环 -->
-            <a-ring id="ar-ring" 
-                    position="0 -0.2 0" 
-                    rotation="-90 0 0" 
-                    radius-inner="0.3" 
-                    radius-outer="0.4" 
-                    color="#e07a5f" 
-                    opacity="0"
-                    visible="false">
-            </a-ring>
 
         </a-entity>
     </a-scene>
@@ -190,10 +219,12 @@
         const progressText = document.querySelector('#progress-text');
         const startBtn = document.querySelector('#start-btn');
 
-        const arVignette = document.querySelector('#ar-vignette');
         const targetEntity = document.querySelector('#ar-target');
+        const forestCanopy = document.querySelector('#forest-canopy');
+        const waterRipples = document.querySelector('#water-ripples');
+        const moon = document.querySelector('#moon');
+        const halo = document.querySelector('#tyndall-halo');
         const arText = document.querySelector('#ar-text');
-        const arRing = document.querySelector('#ar-ring');
         const mediaSource = document.querySelector('#audio-source');
         const arScene = document.querySelector('a-scene');
 
@@ -230,36 +261,44 @@
             if (mindarSystem) mindarSystem.start();
         });
 
-        // ---------------- 2. 原生 AR 识别：扫码框内直接呈现氛围 ----------------
+        // ---------------- 2. 识别成功：显现三重视觉剧场 ----------------
         targetEntity.addEventListener("targetFound", () => {
-            console.log("🎯 在扫码框内捕获猫头鹰！直接渲染氛围");
+            console.log("🎯 捕获猫头鹰胸针！唤醒森林圣坛与月华光晕");
 
-            // 1. 相机四周加深变暗，聚光在猫头鹰身上
-            arVignette.classList.add('active');
+            // 1. 显现 3D 森林枝桠与脚下涟漪水面
+            forestCanopy.setAttribute('visible', 'true');
+            waterRipples.setAttribute('visible', 'true');
 
-            // 2. 显示 AR 3D 浮空元素与底座光环
+            // 2. 满月与廷达尔光晕淡入（神圣金光）
+            moon.setAttribute('visible', 'true');
+            moon.setAttribute('animation', 'property: components.material.material.opacity; to: 0.85; dur: 1800; easing: easeOutQuad');
+            
+            halo.setAttribute('visible', 'true');
+            halo.setAttribute('animation__fade', 'property: components.material.material.opacity; to: 0.45; dur: 2200; easing: easeOutQuad');
+
+            // 3. 浮空预言文字
             arText.setAttribute('visible', 'true');
-            arRing.setAttribute('visible', 'true');
-            arRing.setAttribute('animation', 'property: components.material.material.opacity; to: 0.6; dur: 1500; easing: easeInOutSine');
 
-            // 3. 播放背景声音/音频
+            // 4. 播放音频/背景声
             mediaSource.currentTime = 0;
             mediaSource.muted = false;
             mediaSource.play().catch(e => console.warn(e));
         });
 
-        // 失去焦点时平滑恢复镜头
+        // 移开镜头时隐藏剧场元素
         targetEntity.addEventListener("targetLost", () => {
-            console.log("🔍 离开镜头，恢复普通扫描状态");
-            arVignette.classList.remove('active');
+            console.log("🔍 离开实体，收起圣坛");
+            forestCanopy.setAttribute('visible', 'false');
+            waterRipples.setAttribute('visible', 'false');
+            moon.setAttribute('visible', 'false');
+            halo.setAttribute('visible', 'false');
             arText.setAttribute('visible', 'false');
-            arRing.setAttribute('visible', 'false');
             mediaSource.pause();
         });
 
         // ---------------- 3. 播放结束触发粒子烟花 ----------------
         mediaSource.addEventListener('ended', () => {
-            createFireworks(window.innerWidth / 2, window.innerHeight * 0.4);
+            createFireworks(window.innerWidth / 2, window.innerHeight * 0.35);
         });
 
         // ---------------- 4. 空间烟花粒子 ----------------
@@ -275,8 +314,8 @@
         resizeCanvas();
 
         function createFireworks(x, y) {
-            const colors = ['#f4a261', '#e76f51', '#2a9d8f', '#e9c46a', '#ffb703'];
-            for (let i = 0; i < 50; i++) {
+            const colors = ['#f7d674', '#e76f51', '#64dfdf', '#e9c46a', '#fffcf2'];
+            for (let i = 0; i < 60; i++) {
                 const angle = Math.random() * Math.PI * 2;
                 const speed = Math.random() * 5 + 2;
                 particles.push({
@@ -286,7 +325,7 @@
                     color: colors[Math.floor(Math.random() * colors.length)],
                     alpha: 1,
                     decay: Math.random() * 0.02 + 0.015,
-                    size: Math.random() * 3 + 2
+                    size: Math.random() * 3.5 + 2
                 });
             }
         }
