@@ -8,22 +8,6 @@
     <style>
         body { margin: 0; overflow: hidden; }
     </style>
-
-    <script>
-        // 註冊遮罩組件：關閉顏色寫入，僅保留深度資訊以遮擋後方物件
-        AFRAME.registerComponent('occluder', {
-            init: function () {
-                const mesh = this.el.getObject3D('mesh');
-                if (mesh) {
-                    mesh.material.colorWrite = false;
-                } else {
-                    this.el.addEventListener('model-loaded', () => {
-                        this.el.getObject3D('mesh').material.colorWrite = false;
-                    });
-                }
-            }
-        });
-    </script>
 </head>
 <body>
 
@@ -40,26 +24,18 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-            
-            <!-- 1. 貓頭鷹位置的隱形遮罩 (Z = 0) -->
-            <!-- 可以調整 width, height 與 position (X Y Z) 來精確匹配圖卡中貓頭鷹的位置與大小 -->
-            <a-plane occluder 
-                     position="0 0 0" 
-                     width="1.0" 
-                     height="1.2" 
-                     material="shader: flat;">
-            </a-plane>
-
-            <!-- 2. 後方的樹枝圖片 (Z = -0.05) -->
+            <!-- 
+                1. position="0 -0.2 -1"：Z 軸設為 -1 推入背景；Y 軸設為 -0.2 可將樹枝稍微下移，方便對齊貓頭鷹腳下
+                2. depthTest: true：確保開啟深度測試，正確計算前後層級關係
+            -->
             <a-image id="ar-image"
                      src="#img-resource"
-                     position="0 0 -0.05" 
+                     position="0 -0.2 -1" 
                      rotation="0 0 0"
-                     material="shader: flat; transparent: true; opacity: 0; side: double;"
+                     material="shader: flat; transparent: true; opacity: 0; side: double; depthTest: true;"
                      animation__fadein="property: material.opacity; from: 0; to: 1; dur: 800; easing: easeInOutCubic; startEvents: fade-in"
                      animation__fadeout="property: material.opacity; from: 1; to: 0; dur: 300; easing: easeInOutCubic; startEvents: fade-out">
             </a-image>
-
         </a-entity>
     </a-scene>
 
