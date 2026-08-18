@@ -8,6 +8,22 @@
     <style>
         body { margin: 0; overflow: hidden; }
     </style>
+
+    <script>
+        // 註冊遮罩組件：關閉顏色寫入，僅保留深度資訊以遮擋後方物件
+        AFRAME.registerComponent('occluder', {
+            init: function () {
+                const mesh = this.el.getObject3D('mesh');
+                if (mesh) {
+                    mesh.material.colorWrite = false;
+                } else {
+                    this.el.addEventListener('model-loaded', () => {
+                        this.el.getObject3D('mesh').material.colorWrite = false;
+                    });
+                }
+            }
+        });
+    </script>
 </head>
 <body>
 
@@ -24,6 +40,17 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+            
+            <!-- 1. 貓頭鷹位置的隱形遮罩 (Z = 0) -->
+            <!-- 可以調整 width, height 與 position (X Y Z) 來精確匹配圖卡中貓頭鷹的位置與大小 -->
+            <a-plane occluder 
+                     position="0 0 0" 
+                     width="1.0" 
+                     height="1.2" 
+                     material="shader: flat;">
+            </a-plane>
+
+            <!-- 2. 後方的樹枝圖片 (Z = -0.05) -->
             <a-image id="ar-image"
                      src="#img-resource"
                      position="0 0 -0.05" 
@@ -32,6 +59,7 @@
                      animation__fadein="property: material.opacity; from: 0; to: 1; dur: 800; easing: easeInOutCubic; startEvents: fade-in"
                      animation__fadeout="property: material.opacity; from: 1; to: 0; dur: 300; easing: easeInOutCubic; startEvents: fade-out">
             </a-image>
+
         </a-entity>
     </a-scene>
 
@@ -40,9 +68,8 @@
         const imgResource = document.querySelector('#img-resource');
         const arImageEntity = document.querySelector('#ar-image');
 
-        const BASE_SIZE = 2; // 設定顯示基準大小
+        const BASE_SIZE = 2;
 
-        // 根據圖片的原始寬高比動態調整 A-Frame 實體比例
         function setARImageRatio() {
             if (imgResource.naturalWidth > 0 && imgResource.naturalHeight > 0) {
                 const width = imgResource.naturalWidth;
@@ -59,22 +86,19 @@
             }
         }
 
-        // 確保圖片加載完成後計算寬高比
         if (imgResource.complete) {
             setARImageRatio();
         } else {
             imgResource.addEventListener('load', setARImageRatio);
         }
 
-        // 識別成功：發送 fade-in 事件觸發淡入顯現動畫
         targetEntity.addEventListener("targetFound", event => {
-            console.log("🎯 識別成功，圖片自然過渡顯現！");
+            console.log("🎯 識別成功！");
             arImageEntity.emit('fade-in');
         });
 
-        // 失去識別：發送 fade-out 事件平滑隱藏
         targetEntity.addEventListener("targetLost", event => {
-            console.log("❌ 失去識別標籤，淡出圖片");
+            console.log("❌ 失去識別標籤");
             arImageEntity.emit('fade-out');
         });
     </script>
