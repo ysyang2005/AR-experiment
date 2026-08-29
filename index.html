@@ -47,7 +47,7 @@
             text-align: center;
         }
 
-        /* 識別成功後顯示的 2D UI 容器 (受距離縮放控制) */
+        /* 外層 2D UI 容器：始終保持 100% 全屏，不進行 scale */
         #ar-ui-overlay {
             position: fixed;
             top: 0;
@@ -60,16 +60,13 @@
             align-items: center;
             pointer-events: none;
             background: transparent;
-            transform-origin: center center;
-            /* 讓縮放平滑過渡 */
-            transition: transform 0.05s ease-out;
         }
 
         #ar-ui-overlay * {
             pointer-events: auto;
         }
 
-        /* 響應式 Viewport 容器 */
+        /* 內部內容 stage：由 JS 動態調整 scale(...) 實現近大遠小 */
         .responsive-stage {
             position: relative;
             width: 100vw;
@@ -78,6 +75,9 @@
             overflow: hidden;
             pointer-events: none;
             background: transparent;
+            transform-origin: center center;
+            will-change: transform;
+            transition: transform 0.05s ease-out;
         }
 
         /* 動態金色粒子 Canvas 層 */
@@ -209,8 +209,9 @@
         <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
     </div>
 
-    <!-- 識別成功後顯示的 UI 內容 -->
+    <!-- 始終保持全屏的 UI 覆蓋層 -->
     <div id="ar-ui-overlay">
+        <!-- 內容容器：動態接受距離進行內部內容的近大遠小縮放 -->
         <div class="responsive-stage" id="stage">
             <canvas id="particleCanvas" class="particles-canvas"></canvas>
 
@@ -267,6 +268,7 @@
         const cameraEntity = document.querySelector('#mainCamera');
         const audioOverlay = document.querySelector('#audio-overlay');
         const arUiOverlay = document.querySelector('#ar-ui-overlay');
+        const stage = document.querySelector('#stage');
 
         let isTargetFound = false;
 
@@ -282,50 +284,44 @@
         targetEntity.addEventListener("targetLost", () => {
             isTargetFound = false;
             arUiOverlay.style.display = 'none';
+            stage.style.transform = 'scale(1)';
         });
 
-        // --- 核心：基於 Three.js 世界座標系的精確「近大遠小」算法 ---
+        // --- 距離縮放控制：縮放 stage 內部的內容，全屏背景不動 ---
         const targetVec = new THREE.Vector3();
         const cameraVec = new THREE.Vector3();
 
-        // 基準距離參數 (可根據喜好微調)
-        const BASE_DISTANCE = 3.0; // 基準距離（距離為 3 時，Scale 為 1.0）
-        const MIN_SCALE = 0.5;      // 拿非常遠時，最小縮放至 0.5 倍
-        const MAX_SCALE = 1.6;      // 拿非常近時，最大放大至 1.6 倍
+        const BASE_DISTANCE = 2.8; // 基準距離
+        const MIN_SCALE = 0.7;      // 距離遠時，內容縮小至 0.7 倍
+        const MAX_SCALE = 1.45;     // 距離近時，內容放大至 1.45 倍
 
         let currentScale = 1;
 
         function updateDistanceScale() {
             if (isTargetFound && targetEntity.object3D && cameraEntity.object3D) {
-                // 1. 取得 Target 與 Camera 在 3D 世界空間中的真實點位
                 targetEntity.object3D.getWorldPosition(targetVec);
                 cameraEntity.object3D.getWorldPosition(cameraVec);
 
-                // 2. 計算兩者間的歐式距離
                 const distance = cameraVec.distanceTo(targetVec);
 
                 if (distance > 0) {
-                    // 3. 近大遠小邏輯：距離越小，scale 越大
                     const rawScale = BASE_DISTANCE / distance;
-                    
-                    // 4. 限制最大與最小縮放範圍
                     const clampedScale = Math.min(Math.max(rawScale, MIN_SCALE), MAX_SCALE);
                     
-                    // 5. 加上緩衝（Lerp），防止手抖造成畫面劇烈晃動
-                    currentScale += (clampedScale - currentScale) * 0.2;
+                    // 平滑過渡
+                    currentScale += (clampedScale - currentScale) * 0.15;
 
-                    // 6. 應用到 2D UI 容器
-                    arUiOverlay.style.transform = `scale(${currentScale.toFixed(3)})`;
+                    // 僅作用於 stage 內部內容，保持畫面全屏不變
+                    stage.style.transform = `scale(${currentScale.toFixed(3)})`;
                 }
             }
             requestAnimationFrame(updateDistanceScale);
         }
         updateDistanceScale();
 
-        // --- 金色粒子引擎 ---
+        // --- 金色粒子渲染引擎 ---
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
-        const stage = document.getElementById('stage');
 
         let width, height;
         function resizeCanvas() {
