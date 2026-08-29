@@ -198,7 +198,7 @@
 
             <div class="bottom-actions-container">
                 <div class="action-btn">
-                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg></div>
                     <div class="btn-text">Flavor Profile</div>
                 </div>
                 <div class="action-btn">
@@ -222,34 +222,32 @@
       
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <!-- 3D 識別追蹤實體：所有圖層均採用 XYZ 三維等比例縮放 (scale="S S S") -->
+        <!-- 3D 識別追蹤實體：無任何 scale 縮放（比例均為原始大小 1 1 1） -->
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
             
-            <!-- [z-index: 0] 背景基礎圖層 -->
-            <a-plane src="7.png" position="0.01 -0.08 0.02" width="1.03" height="0.65" rotation="0 0 0.77" scale="0.99 0.99 0.99" material="transparent: true; alphaTest: 0.1;" render-order="990"></a-plane>
-            <a-plane src="10.png" position="-0.33 0.09 0.03" width="0.52" height="0.33" rotation="0 0 2.55" scale="0.98 0.98 0.98" material="transparent: true; alphaTest: 0.1;" render-order="991"></a-plane>
-            <a-plane src="11.png" position="0.44 0.26 0.03" width="0.93" height="0.58" rotation="0 0 -11.45" scale="0.98 0.98 0.98" material="transparent: true; alphaTest: 0.1;" render-order="991"></a-plane>
+            <!-- 5. 背景層 (7, 10, 11) -->
+            <a-plane src="7.png" position="0.01 -0.08 0.01" width="1.03" height="0.65" rotation="0 0 0.77" material="transparent: true; alphaTest: 0.1;" render-order="990"></a-plane>
+            <a-plane src="10.png" position="-0.33 0.09 0.02" width="0.52" height="0.33" rotation="0 0 2.55" material="transparent: true; alphaTest: 0.1;" render-order="991"></a-plane>
+            <a-plane src="11.png" position="0.44 0.26 0.02" width="0.93" height="0.58" rotation="0 0 -11.45" material="transparent: true; alphaTest: 0.1;" render-order="991"></a-plane>
 
-            <!-- [z-index: 2] 中景元素 -->
-            <a-plane src="4.png" position="-0.33 -0.09 0.06" width="0.33" height="0.21" rotation="0 0 0.10" scale="0.93 0.93 0.93" material="transparent: true; alphaTest: 0.1;" render-order="992"></a-plane>
-            <a-plane src="9.png" position="0.37 -0.08 0.06" width="0.22" height="0.14" rotation="0 0 1.17" scale="0.93 0.93 0.93" material="transparent: true; alphaTest: 0.1;" render-order="992"></a-plane>
+            <!-- 4. 下一層 (4, 9) -->
+            <a-plane src="4.png" position="-0.33 -0.09 0.05" width="0.33" height="0.21" rotation="0 0 0.10" material="transparent: true; alphaTest: 0.1;" render-order="992"></a-plane>
+            <a-plane src="9.png" position="0.37 -0.08 0.05" width="0.22" height="0.14" rotation="0 0 1.17" material="transparent: true; alphaTest: 0.1;" render-order="992"></a-plane>
 
-            <!-- [z-index: 4 - 6] 主要物體與前景細節層 -->
-            <a-plane src="2.png" position="-0.37 -0.22 0.10" width="0.51" height="0.32" rotation="0 0 -10.70" scale="0.89 0.89 0.89" material="transparent: true; alphaTest: 0.1;" render-order="993"></a-plane>
-            <a-plane src="5.png" position="0.28 -0.16 0.13" width="0.31" height="0.19" rotation="0 0 0.45" scale="0.86 0.86 0.86" material="transparent: true; alphaTest: 0.1;" render-order="994"></a-plane>
-            <a-plane src="3.png" position="-0.31 -0.31 0.16" width="0.38" height="0.24" rotation="0 0 -11.34" scale="0.84 0.84 0.84" material="transparent: true; alphaTest: 0.1;" render-order="995"></a-plane>
-            <a-plane src="6.png" position="0.28 -0.22 0.16" width="0.39" height="0.24" rotation="0 0 2.36" scale="0.84 0.84 0.84" material="transparent: true; alphaTest: 0.1;" render-order="995"></a-plane>
+            <!-- 3. 下一層 (2, 5) -->
+            <a-plane src="2.png" position="-0.37 -0.22 0.10" width="0.51" height="0.32" rotation="0 0 -10.70" material="transparent: true; alphaTest: 0.1;" render-order="993"></a-plane>
+            <a-plane src="5.png" position="0.28 -0.16 0.10" width="0.31" height="0.19" rotation="0 0 0.45" material="transparent: true; alphaTest: 0.1;" render-order="993"></a-plane>
 
-            <!-- [z-index: 8] 飛鳥與頂部裝飾元素 -->
-            <a-plane src="13.png" position="0.37 0.59 0.20" width="0.31" height="0.19" rotation="0 0 9.84" scale="0.81 0.81 0.81" material="transparent: true; alphaTest: 0.1;" render-order="997"></a-plane>
-            <a-plane src="14.png" position="-0.33 0.42 0.20" width="0.25" height="0.16" rotation="0 0 -11.04" scale="0.81 0.81 0.81" material="transparent: true; alphaTest: 0.1;" render-order="997"></a-plane>
-            <a-plane src="14.png" position="-0.39 0.60 0.22" width="0.27" height="0.17" rotation="0 0 -3.78" scale="0.79 0.79 0.79" material="transparent: true; alphaTest: 0.1;" render-order="997"></a-plane>
+            <!-- 2. 下一層 (3, 6) -->
+            <a-plane src="3.png" position="-0.31 -0.31 0.15" width="0.38" height="0.24" rotation="0 0 -11.34" material="transparent: true; alphaTest: 0.1;" render-order="995"></a-plane>
+            <a-plane src="6.png" position="0.28 -0.22 0.15" width="0.39" height="0.24" rotation="0 0 2.36" material="transparent: true; alphaTest: 0.1;" render-order="995"></a-plane>
 
-            <!-- 12.png（梯田底圖） -->
-            <a-plane src="12.png" position="0 -0.58 0.12" width="1.85" height="1.0" rotation="0 0 0.87" scale="0.87 0.87 0.87" material="transparent: true; alphaTest: 0.1;" render-order="998"></a-plane>
-
-            <!-- 1.png（麝香貓前景） -->
-            <a-plane src="1.png" position="0.1 -0.15 0.25" width="1.2" height="0.8" scale="0.82 0.82 0.82" material="transparent: true; alphaTest: 0.1;" render-order="999"></a-plane>
+            <!-- 1. 最前層 (1, 12, 13, 14.png) -->
+            <a-plane src="12.png" position="0 -0.58 0.20" width="1.85" height="1.0" rotation="0 0 0.87" material="transparent: true; alphaTest: 0.1;" render-order="997"></a-plane>
+            <a-plane src="13.png" position="0.37 0.59 0.20" width="0.31" height="0.19" rotation="0 0 9.84" material="transparent: true; alphaTest: 0.1;" render-order="997"></a-plane>
+            <a-plane src="14.png" position="-0.33 0.42 0.20" width="0.25" height="0.16" rotation="0 0 -11.04" material="transparent: true; alphaTest: 0.1;" render-order="997"></a-plane>
+            <a-plane src="14.png" position="-0.39 0.60 0.22" width="0.27" height="0.17" rotation="0 0 -3.78" material="transparent: true; alphaTest: 0.1;" render-order="998"></a-plane>
+            <a-plane src="1.png" position="0.1 -0.15 0.25" width="1.2" height="0.8" material="transparent: true; alphaTest: 0.1;" render-order="999"></a-plane>
 
         </a-entity>
     </a-scene>
