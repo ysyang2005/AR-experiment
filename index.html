@@ -215,7 +215,7 @@
                 <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
             </div>
 
-            <!-- 圖層素材 (帶專屬金色光暈) -->
+            <!-- 圖層素材（1.png 已移至 3D 空間，此處保留其餘圖層） -->
             <img class="placed-image" src="7.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 103.4814%; z-index: 0; transform: translate(-50%, -50%) rotate(0.77deg);" />
             <img class="placed-image" src="10.png" style="position: absolute; left: 16.6111%; top: 44.0888%; width: 51.9053%; z-index: 0; transform: translate(-50%, -50%) rotate(2.55deg);" />
             <img class="placed-image" src="11.png" style="position: absolute; left: 93.9530%; top: 33.6785%; width: 92.9519%; z-index: 0; transform: translate(-50%, -50%) rotate(-11.45deg);" />
@@ -225,7 +225,6 @@
             <img class="placed-image" src="5.png" style="position: absolute; left: 78.4764%; top: 60.2211%; width: 31.1608%; z-index: 5; transform: translate(-50%, -50%) rotate(0.45deg);" />
             <img class="placed-image" src="3.png" style="position: absolute; left: 18.5396%; top: 69.1282%; width: 37.7037%; z-index: 6; transform: translate(-50%, -50%) rotate(-11.34deg);" />
             <img class="placed-image" src="6.png" style="position: absolute; left: 78.4764%; top: 64.0202%; width: 39.0327%; z-index: 6; transform: translate(-50%, -50%) rotate(2.36deg);" />
-            <img class="placed-image" src="1.png" style="position: absolute; left: 39.1315%; top: 63.4142%; width: 64.2193%; z-index: 8; transform: translate(-50%, -50%) rotate(0.82deg);" />
             <img class="placed-image" src="13.png" style="position: absolute; left: 87.4311%; top: 12.9671%; width: 30.7334%; z-index: 8; transform: translate(-50%, -50%) rotate(9.84deg);" />
             <img class="placed-image" src="14.png" style="position: absolute; left: 16.6111%; top: 23.5930%; width: 24.9709%; z-index: 8; transform: translate(-50%, -50%) rotate(-11.04deg);" />
             <img class="placed-image" src="14.png" style="position: absolute; left: 11.1558%; top: 12.3079%; width: 27.3993%; z-index: 8; transform: translate(-50%, -50%) rotate(-3.78deg);" />
@@ -256,7 +255,19 @@
              device-orientation-permission-ui="enabled: false">
       
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-        <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
+
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+            <!-- 1.png 放置於 3D 空間縱深最前端，並縮放以維持原比例大小 -->
+            <a-plane id="front-image-3d"
+                     src="1.png" 
+                     position="0.1 -0.15 0.2" 
+                     width="1.2" 
+                     height="0.8"
+                     scale="0.82 0.82 0.82" 
+                     material="transparent: true; alphaTest: 0.1; depthTest: false;"
+                     render-order="999">
+            </a-plane>
+        </a-entity>
     </a-scene>
 
     <script>
@@ -268,7 +279,7 @@
             audioOverlay.style.display = 'none';
         });
 
-        // 識別圖狀態監聽：僅控制全屏 UI 的顯示與隱藏
+        // 識別圖狀態監聽：控制全屏 UI 的顯示與隱藏
         targetEntity.addEventListener("targetFound", () => {
             arUiOverlay.style.display = 'flex';
         });
