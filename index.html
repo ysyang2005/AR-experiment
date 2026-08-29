@@ -18,7 +18,7 @@
 
         .a-canvas { background-color: transparent !important; }
 
-        /* 啟動遮罩 */
+        /* 啟動遮罩 (點擊僅啟動體驗，不觸發 UI) */
         #audio-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.8);
@@ -44,11 +44,11 @@
             50% { transform: scale(1.05); }
         }
 
-        /* 全屏 UI 覆蓋層 */
+        /* 全屏 UI 覆蓋層 (嚴格預設隱藏) */
         #ar-ui-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
             z-index: 1000;
-            display: none; /* 初始隱藏，觸發後顯示 */
+            display: none; 
             justify-content: center; align-items: center;
             pointer-events: none;
             background: transparent;
@@ -75,14 +75,12 @@
         /* 圖片基礎樣式 */
         .placed-image {
             pointer-events: none;
-            opacity: 0; /* 初始透明，靠 JS 加 Class 顯現 */
+            opacity: 0;
             filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.5));
             will-change: opacity, transform;
         }
 
-        /* ------------------- 修復後的動效動畫 ------------------- */
-        
-        /* 淡入動畫 (適用於 7, 10, 11, 2, 3, 4, 5, 6, 9, 13, 14, 12) */
+        /* 淡入動畫 */
         .anim-fade-in {
             animation: fadeInAnim 0.8s ease-out forwards;
         }
@@ -91,7 +89,7 @@
             100% { opacity: 1; }
         }
 
-        /* 特殊處理：1.png 彈性放大跳出並落回原位 */
+        /* 1.png 彈性放大跳出 */
         .anim-pop-1 {
             animation: pop1Anim 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
@@ -101,15 +99,18 @@
             100% { opacity: 1; transform: translate(-50%, -50%) rotate(0.87deg) scale(1); }
         }
 
-        /* 頂部標題打字機效果 */
+        /* 頂部標題（兩行獨立打字機） */
         .top-title-container {
             position: absolute;
             top: 3.5%; left: 50%; transform: translateX(-50%);
             z-index: 20; width: 90%; text-align: center;
             pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        .top-title {
+        .title-line {
             font-family: Impact, "Arial Black", sans-serif;
             font-size: 7.5vw; font-weight: 900; line-height: 0.95;
             letter-spacing: 1px; text-transform: uppercase;
@@ -117,7 +118,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             -webkit-text-stroke: 1px #4a0900;
-            display: inline-block;
             white-space: nowrap;
             overflow: hidden;
             width: 0;
@@ -126,7 +126,7 @@
 
         .anim-typewriter {
             opacity: 1;
-            animation: typing 1.2s steps(18, end) forwards;
+            animation: typing 0.8s steps(12, end) forwards;
         }
         @keyframes typing { from { width: 0; } to { width: 100%; } }
 
@@ -165,7 +165,6 @@
         .btn-badge svg { width: 14px; height: 14px; fill: #f5e2b3; }
         .btn-text { font-size: 2.3vw; font-weight: bold; color: #3b1d06; white-space: nowrap; }
 
-        /* 彈窗 */
         .info-modal {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
             width: 85%; background: rgba(20, 15, 10, 0.95);
@@ -178,25 +177,27 @@
         .close-modal-btn { margin-top: 15px; background: #c43216; color: #fff; border: none; padding: 6px 20px; border-radius: 20px; cursor: pointer; }
 
         @media (min-width: 500px) {
-            .top-title { font-size: 38px; }
+            .title-line { font-size: 38px; }
             .btn-text { font-size: 12px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- 點擊開始遮罩 -->
+    <!-- 點擊開始遮罩 (僅解鎖瀏覽器音訊與鏡頭) -->
     <div id="audio-overlay">
         <div class="overlay-btn">✨ 點擊螢幕開啟體驗 ✨</div>
     </div>
 
-    <!-- UI 圖層內容 -->
+    <!-- UI 圖層內容 (未識別前不顯示) -->
     <div id="ar-ui-overlay">
         <div class="responsive-stage" id="stage">
             <canvas id="particleCanvas" class="particles-canvas"></canvas>
 
+            <!-- 兩行獨立標題 -->
             <div class="top-title-container">
-                <h1 class="top-title" id="typewriterTitle">TIMOR LESTE KOPI LUWAK</h1>
+                <h1 class="title-line" id="titleLine1">TIMOR LESTE</h1>
+                <h1 class="title-line" id="titleLine2">KOPI LUWAK</h1>
             </div>
 
             <!-- 圖層素材 -->
@@ -260,27 +261,26 @@
         const particleCanvas = document.getElementById('particleCanvas');
         let animationTimers = [];
 
-        // 點擊遮罩：隱藏遮罩並強制開啟體驗（防止 AR 識別不到造成永久空白）
+        // 點擊遮罩：只負責關閉遮罩，不觸發 UI 動畫
         audioOverlay.addEventListener('click', () => {
             audioOverlay.style.opacity = '0';
             setTimeout(() => {
                 audioOverlay.style.display = 'none';
-                arUiOverlay.style.display = 'flex';
-                startSequenceAnimation();
             }, 500);
         });
 
-        // 核心動畫時間線控制器
+        // 核心動畫時間線控制器 (僅在 targetFound 時觸發)
         function startSequenceAnimation() {
             animationTimers.forEach(t => clearTimeout(t));
             animationTimers = [];
 
-            // 1. 清除舊動畫狀態
+            // 清除舊動畫狀態
             document.querySelectorAll('.placed-image').forEach(el => {
                 el.classList.remove('anim-fade-in', 'anim-pop-1');
                 el.style.opacity = '0';
             });
-            document.getElementById('typewriterTitle').classList.remove('anim-typewriter');
+            document.getElementById('titleLine1').classList.remove('anim-typewriter');
+            document.getElementById('titleLine2').classList.remove('anim-typewriter');
             document.getElementById('bottomActions').classList.remove('anim-buttons-in');
             particleCanvas.style.opacity = '0';
 
@@ -299,7 +299,7 @@
                 ['img-5', 'img-6', 'img-9'].forEach(id => document.getElementById(id).classList.add('anim-fade-in'));
             }, 1800));
 
-            // 階段 4: (2.6s) 1.png 放大一倍跳出並回到中央既定位置
+            // 階段 4: (2.6s) 1.png 放大跳出並回到中央既定位置
             animationTimers.push(setTimeout(() => {
                 document.getElementById('img-1').classList.add('anim-pop-1');
             }, 2600));
@@ -309,37 +309,44 @@
                 ['img-13', 'img-14-1', 'img-14-2'].forEach(id => document.getElementById(id).classList.add('anim-fade-in'));
             }, 3800));
 
-            // 階段 6: (4.6s) 頂部標題打字機
+            // 階段 6: (4.6s) 標題第一行打字機 -> (5.3s) 第二行打字機
             animationTimers.push(setTimeout(() => {
-                document.getElementById('typewriterTitle').classList.add('anim-typewriter');
+                document.getElementById('titleLine1').classList.add('anim-typewriter');
             }, 4600));
 
-            // 階段 7: (5.6s) 12.png 浮現
+            animationTimers.push(setTimeout(() => {
+                document.getElementById('titleLine2').classList.add('anim-typewriter');
+            }, 5300));
+
+            // 階段 7: (6.1s) 12.png 浮現
             animationTimers.push(setTimeout(() => {
                 document.getElementById('img-12').classList.add('anim-fade-in');
-            }, 5600));
+            }, 6100));
 
-            // 階段 8: (6.3s) 底部按鈕彈出
+            // 階段 8: (6.8s) 底部按鈕彈出
             animationTimers.push(setTimeout(() => {
                 document.getElementById('bottomActions').classList.add('anim-buttons-in');
-            }, 6300));
+            }, 6800));
 
-            // 階段 9: (7.0s) 降下金色粒子
+            // 階段 9: (7.4s) 降下金色粒子
             animationTimers.push(setTimeout(() => {
                 particleCanvas.style.opacity = '1';
-            }, 7000));
+            }, 7400));
         }
 
+        // 僅在 MindAR 成功識別圖片時才顯示 UI 並啟動動畫
         targetEntity.addEventListener("targetFound", () => {
             arUiOverlay.style.display = 'flex';
             startSequenceAnimation();
         });
 
+        // 丟失識別時隱藏 UI
         targetEntity.addEventListener("targetLost", () => {
+            arUiOverlay.style.display = 'none';
             closeModal();
         });
 
-        // 彈窗與粒子系統
+        // 彈窗邏輯
         const modalData = {
             flavor: { title: "FLAVOR PROFILE", text: "Rich dark chocolate notes paired with subtle wild berry acidity." },
             origin: { title: "ORIGIN STORY", text: "Hand-harvested in the high-altitude volcanic regions of Timor-Leste." },
