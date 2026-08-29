@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TIMOR LESTE - MindAR 3D Space Fixed</title>
+    <title>TIMOR LESTE - MindAR Fixed Aspect Ratio</title>
     <!-- 引入 A-Frame -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <!-- 引入 MindAR A-Frame 專用組件 -->
@@ -110,7 +110,6 @@
         .btn-badge svg { width: 16px; height: 16px; fill: #f5e2b3; }
         .btn-text { font-family: Georgia, serif; font-size: 2.5vw; font-weight: bold; color: #3b1d06; }
 
-        /* 掃描提示框 */
         .scan-overlay {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -121,13 +120,9 @@
             pointer-events: none;
             transition: opacity 0.3s ease;
         }
-        .scan-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
+        .scan-overlay.hidden { opacity: 0; pointer-events: none; }
         .scan-box {
-            width: 60vw;
-            height: 60vw;
+            width: 60vw; height: 60vw;
             border: 2px dashed rgba(255, 215, 0, 0.7);
             border-radius: 20px;
             box-shadow: 0 0 20px rgba(255, 215, 0, 0.3) inset;
@@ -138,15 +133,40 @@
             100% { border-color: rgba(255, 215, 0, 1); transform: scale(1.02); }
         }
     </style>
+
+    <script>
+        // 核心修正：自動根據圖片原始長寬比調整 a-image 尺寸，防止任何拉伸
+        AFRAME.registerComponent('auto-ratio', {
+            schema: { width: { type: 'number', default: 1.0 } },
+            init: function () {
+                const el = this.el;
+                const src = el.getAttribute('src');
+                const img = document.querySelector(src);
+
+                const applyRatio = () => {
+                    if (img.naturalWidth && img.naturalHeight) {
+                        const ratio = img.naturalHeight / img.naturalWidth;
+                        const w = this.data.width;
+                        const h = w * ratio;
+                        el.setAttribute('geometry', { primitive: 'plane', width: w, height: h });
+                    }
+                };
+
+                if (img.complete) {
+                    applyRatio();
+                } else {
+                    img.addEventListener('load', applyRatio);
+                }
+            }
+        });
+    </script>
 </head>
 <body>
 
-    <!-- 掃描提示框 -->
     <div class="scan-overlay" id="scanOverlay">
         <div class="scan-box"></div>
     </div>
 
-    <!-- 2D UI 疊加層 -->
     <div class="ui-container" id="uiContainer">
         <div class="top-title-container">
             <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
@@ -197,46 +217,37 @@
         <!-- 綁定識別目標 (以 1:1 正方形標籤中心點為 0,0,0) -->
         <a-entity id="arTarget" mindar-image-target="targetIndex: 0">
             
-            <!-- 【背景遠景層 - Z: 0.01】 -->
-            <!-- 7.png 背後大背景 -->
-            <a-image src="#img7" position="0.01 -0.12 0.01" scale="1.03 1.03 1" rotation="0 0 0.77"></a-image>
-            <!-- 10.png 左側背景棕櫚樹 -->
-            <a-image src="#img10" position="-0.33 0.05 0.02" scale="0.52 0.52 1" rotation="0 0 2.55"></a-image>
-            <!-- 11.png 右側背景棕櫚樹 -->
-            <a-image src="#img11" position="0.44 0.23 0.02" scale="0.93 0.93 1" rotation="0 0 -11.45"></a-image>
-
-            <!-- 【中景山丘與植被層 - Z: 0.05 ~ 0.08】 -->
-            <!-- 4.png 左中景植物 -->
-            <a-image src="#img4" position="-0.33 -0.15 0.05" scale="0.33 0.33 1" rotation="0 0 0.10"></a-image>
-            <!-- 9.png 右中景植物 -->
-            <a-image src="#img9" position="0.37 -0.14 0.05" scale="0.22 0.22 1" rotation="0 0 1.17"></a-image>
-            <!-- 2.png 左邊山丘/咖啡豆 -->
-            <a-image src="#img2" position="-0.37 -0.29 0.07" scale="0.51 0.51 1" rotation="0 0 -10.70"></a-image>
-            <!-- 5.png 右邊山丘 -->
-            <a-image src="#img5" position="0.28 -0.23 0.07" scale="0.31 0.31 1" rotation="0 0 0.45"></a-image>
-
-            <!-- 【主體與前景層 - Z: 0.10 ~ 0.15】 -->
-            <!-- 3.png 左下前方點綴 -->
-            <a-image src="#img3" position="-0.31 -0.41 0.10" scale="0.38 0.38 1" rotation="0 0 -11.34"></a-image>
-            <!-- 6.png 右下前方點綴 -->
-            <a-image src="#img6" position="0.28 -0.32 0.10" scale="0.39 0.39 1" rotation="0 0 2.36"></a-image>
-            <!-- 12.png 底部飄帶 Banner -->
-            <a-image src="#img12" position="-0.02 -0.56 0.12" scale="0.93 0.35 1" rotation="0 0 0.87"></a-image>
+            <!-- 使用 auto-ratio="width: XX" 控制寬度，高度將會自動按原圖比例計算，零拉伸 -->
             
-            <!-- 1.png 核心貓鼬主體 (輕微呼吸浮動) -->
-            <a-image src="#img1" position="-0.11 -0.31 0.15" scale="0.64 0.64 1" rotation="0 0 0.82"
-                     animation="property: position; to: -0.11 -0.29 0.16; dir: alternate; dur: 3000; loop: true; easing: easeInOutSine"></a-image>
+            <!-- 【1. 背景底板 - Z: 0.01】 -->
+            <a-entity auto-ratio="width: 1.1" material="src: #img7; transparent: true" position="0 -0.05 0.01" rotation="0 0 0.77"></a-entity>
 
-            <!-- 【空中飛鳥懸浮視差層 - Z: 0.20 ~ 0.25】 -->
-            <!-- 13.png 右上飛鳥 -->
-            <a-image src="#img13" position="0.37 0.55 0.22" scale="0.31 0.31 1" rotation="0 0 9.84"
-                     animation="property: position; to: 0.38 0.58 0.24; dir: alternate; dur: 2500; loop: true; easing: easeInOutQuad"></a-image>
-            <!-- 14.png 左上飛鳥1 -->
-            <a-image src="#img14" position="-0.33 0.38 0.20" scale="0.25 0.25 1" rotation="0 0 -11.04"
-                     animation="property: position; to: -0.31 0.41 0.22; dir: alternate; dur: 2800; loop: true; easing: easeInOutQuad"></a-image>
-            <!-- 14.png 左上飛鳥2 -->
-            <a-image src="#img14" position="-0.39 0.56 0.20" scale="0.27 0.27 1" rotation="0 0 -3.78"
-                     animation="property: position; to: -0.37 0.58 0.22; dir: alternate; dur: 3200; loop: true; easing: easeInOutQuad"></a-image>
+            <!-- 【2. 遠景樹木 (左右打開放寬，防止擠壓) - Z: 0.03】 -->
+            <a-entity auto-ratio="width: 0.4" material="src: #img10; transparent: true" position="-0.45 0.15 0.03" rotation="0 0 2.55"></a-entity>
+            <a-entity auto-ratio="width: 0.6" material="src: #img11; transparent: true" position="0.55 0.30 0.03" rotation="0 0 -11.45"></a-entity>
+
+            <!-- 【3. 中景山丘與植被 (加大間距) - Z: 0.06】 -->
+            <a-entity auto-ratio="width: 0.3" material="src: #img4; transparent: true" position="-0.42 -0.15 0.06" rotation="0 0 0.10"></a-entity>
+            <a-entity auto-ratio="width: 0.22" material="src: #img9; transparent: true" position="0.45 -0.12 0.06" rotation="0 0 1.17"></a-entity>
+            <a-entity auto-ratio="width: 0.45" material="src: #img2; transparent: true" position="-0.40 -0.32 0.08" rotation="0 0 -10.70"></a-entity>
+            <a-entity auto-ratio="width: 0.3" material="src: #img5; transparent: true" position="0.38 -0.25 0.08" rotation="0 0 0.45"></a-entity>
+
+            <!-- 【4. 前景元素與飄帶 Banner - Z: 0.11 ~ 0.14】 -->
+            <a-entity auto-ratio="width: 0.35" material="src: #img3; transparent: true" position="-0.38 -0.48 0.11" rotation="0 0 -11.34"></a-entity>
+            <a-entity auto-ratio="width: 0.38" material="src: #img6; transparent: true" position="0.38 -0.42 0.11" rotation="0 0 2.36"></a-entity>
+            <a-entity auto-ratio="width: 0.8" material="src: #img12; transparent: true" position="0 -0.58 0.13" rotation="0 0 0.87"></a-entity>
+
+            <!-- 【5. 核心貓鼬主體 (居中放鬆) - Z: 0.16】 -->
+            <a-entity auto-ratio="width: 0.55" material="src: #img1; transparent: true" position="0 -0.28 0.16" rotation="0 0 0.82"
+                      animation="property: position; to: 0 -0.26 0.17; dir: alternate; dur: 3000; loop: true; easing: easeInOutSine"></a-entity>
+
+            <!-- 【6. 天空飛鳥 (向外展翅，遠離中心) - Z: 0.20】 -->
+            <a-entity auto-ratio="width: 0.28" material="src: #img13; transparent: true" position="0.48 0.55 0.20" rotation="0 0 9.84"
+                      animation="property: position; to: 0.50 0.58 0.22; dir: alternate; dur: 2500; loop: true; easing: easeInOutQuad"></a-entity>
+            <a-entity auto-ratio="width: 0.24" material="src: #img14; transparent: true" position="-0.42 0.45 0.20" rotation="0 0 -11.04"
+                      animation="property: position; to: -0.40 0.48 0.22; dir: alternate; dur: 2800; loop: true; easing: easeInOutQuad"></a-entity>
+            <a-entity auto-ratio="width: 0.26" material="src: #img14; transparent: true" position="-0.52 0.65 0.20" rotation="0 0 -3.78"
+                      animation="property: position; to: -0.50 0.67 0.22; dir: alternate; dur: 3200; loop: true; easing: easeInOutQuad"></a-entity>
 
         </a-entity>
     </a-scene>
@@ -251,20 +262,14 @@
             const arTarget = document.getElementById("arTarget");
 
             arTarget.addEventListener("targetFound", () => {
-                console.log("🎯 成功識別到標籤！");
                 uiContainer.classList.add("visible");
                 scanOverlay.classList.add("hidden");
             });
 
             arTarget.addEventListener("targetLost", () => {
-                console.log("❌ 標籤離開畫面");
                 uiContainer.classList.remove("visible");
                 scanOverlay.classList.remove("hidden");
             });
-        });
-
-        arScene.addEventListener("arError", (err) => {
-            console.error("🔴 MindAR 初始化錯誤:", err);
         });
     </script>
 </body>
