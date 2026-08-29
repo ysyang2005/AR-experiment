@@ -10,8 +10,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html { 
-            width: 100%; 
-            height: 100%; 
+            width: 100%; height: 100%; 
             overflow: hidden; 
             background: transparent !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
@@ -19,14 +18,13 @@
 
         .a-canvas { background-color: transparent !important; }
 
-        /* 音訊點擊覆蓋層 */
+        /* 啟動遮罩 */
         #audio-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.75);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(5px);
             color: white;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            display: flex; justify-content: center; align-items: center;
             z-index: 9999;
             cursor: pointer;
             transition: opacity 0.5s ease;
@@ -37,7 +35,7 @@
             color: #fff; padding: 16px 36px; border-radius: 30px;
             font-size: 18px; font-weight: bold;
             box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
-            text-align: center; border: 1px solid #ffe259;
+            border: 1px solid #ffe259;
             animation: overlayPulse 2s infinite ease-in-out;
         }
 
@@ -48,10 +46,9 @@
 
         /* 全屏 UI 覆蓋層 */
         #ar-ui-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100dvh;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
             z-index: 1000;
-            display: none;
+            display: none; /* 初始隱藏，觸發後顯示 */
             justify-content: center; align-items: center;
             pointer-events: none;
             background: transparent;
@@ -68,67 +65,40 @@
         }
 
         .particles-canvas {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 15;
             pointer-events: none;
             opacity: 0;
             transition: opacity 1.5s ease;
         }
 
+        /* 圖片基礎樣式 */
         .placed-image {
             pointer-events: none;
-            opacity: 0;
+            opacity: 0; /* 初始透明，靠 JS 加 Class 顯現 */
             filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.5));
-            animation-fill-mode: forwards !important;
+            will-change: opacity, transform;
         }
 
-        /* ------------------- 動畫分階段 Keyframes ------------------- */
+        /* ------------------- 修復後的動效動畫 ------------------- */
         
-        /* 階段 1: 緩緩浮現 */
+        /* 淡入動畫 (適用於 7, 10, 11, 2, 3, 4, 5, 6, 9, 13, 14, 12) */
         .anim-fade-in {
-            animation: fadeIn 1.2s ease-out forwards;
+            animation: fadeInAnim 0.8s ease-out forwards;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        /* 階段 2: 左側劃入 */
-        .anim-slide-left {
-            animation: slideLeft 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-        @keyframes slideLeft {
-            from { opacity: 0; transform: translate(-150%, -50%) rotate(var(--rot, 0deg)); }
-            to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); }
+        @keyframes fadeInAnim {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
         }
 
-        /* 階段 3: 右側劃入 */
-        .anim-slide-right {
-            animation: slideRight 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        /* 特殊處理：1.png 彈性放大跳出並落回原位 */
+        .anim-pop-1 {
+            animation: pop1Anim 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
-        @keyframes slideRight {
-            from { opacity: 0; transform: translate(100%, -50%) rotate(var(--rot, 0deg)); }
-            to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); }
-        }
-
-        /* 階段 4: 1.png 放大跳出並縮回 */
-        .anim-pop-center {
-            animation: popCenter 1.0s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-        @keyframes popCenter {
+        @keyframes pop1Anim {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
-            70% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-
-        /* 階段 7: 自下而上劃入 (12.png) */
-        .anim-slide-up {
-            animation: slideUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translate(-50%, 50%) rotate(var(--rot, 0deg)); }
-            to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); }
+            60% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            100% { opacity: 1; transform: translate(-50%, -50%) rotate(0.87deg) scale(1); }
         }
 
         /* 頂部標題打字機效果 */
@@ -151,16 +121,14 @@
             white-space: nowrap;
             overflow: hidden;
             width: 0;
-            border-right: 3px solid #ffd700;
             opacity: 0;
         }
 
         .anim-typewriter {
             opacity: 1;
-            animation: typing 1.2s steps(18, end) forwards, blink 0.6s step-end infinite alternate;
+            animation: typing 1.2s steps(18, end) forwards;
         }
-        @keyframes typing { from { width: 0; } to { width: 100%; border-color: transparent; } }
-        @keyframes blink { 50% { border-color: transparent; } }
+        @keyframes typing { from { width: 0; } to { width: 100%; } }
 
         /* 底部按鈕欄 */
         .bottom-actions-container {
@@ -174,7 +142,7 @@
             animation: buttonsIn 0.6s ease-out forwards;
         }
         @keyframes buttonsIn {
-            from { opacity: 0; transform: translate(-50%, 30px); }
+            from { opacity: 0; transform: translate(-50%, 20px); }
             to { opacity: 1; transform: translate(-50%, 0); }
         }
 
@@ -185,9 +153,7 @@
             border-radius: 12px; padding: 20px 2px 8px 2px;
             text-align: center; cursor: pointer;
             box-shadow: 0 4px 8px rgba(0,0,0,0.6);
-            transition: transform 0.15s ease;
         }
-        .action-btn:active { transform: scale(0.93); }
 
         .btn-badge {
             position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
@@ -219,47 +185,41 @@
 </head>
 <body>
 
+    <!-- 點擊開始遮罩 -->
     <div id="audio-overlay">
         <div class="overlay-btn">✨ 點擊螢幕開啟體驗 ✨</div>
     </div>
 
+    <!-- UI 圖層內容 -->
     <div id="ar-ui-overlay">
         <div class="responsive-stage" id="stage">
             <canvas id="particleCanvas" class="particles-canvas"></canvas>
 
-            <!-- 頂部標題 -->
             <div class="top-title-container">
                 <h1 class="top-title" id="typewriterTitle">TIMOR LESTE KOPI LUWAK</h1>
             </div>
 
             <!-- 圖層素材 -->
-            <!-- 階段 1: 緩緩浮現 (7, 10, 11) -->
-            <img class="placed-image stage-1" src="7.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 103.4814%; z-index: 0; --rot: 0.77deg; transform: translate(-50%, -50%) rotate(0.77deg);" />
-            <img class="placed-image stage-1" src="10.png" style="position: absolute; left: 16.6111%; top: 44.0888%; width: 51.9053%; z-index: 0; --rot: 2.55deg; transform: translate(-50%, -50%) rotate(2.55deg);" />
-            <img class="placed-image stage-1" src="11.png" style="position: absolute; left: 93.9530%; top: 33.6785%; width: 92.9519%; z-index: 0; --rot: -11.45deg; transform: translate(-50%, -50%) rotate(-11.45deg);" />
+            <img id="img-7" class="placed-image" src="7.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 103.4814%; z-index: 0; transform: translate(-50%, -50%) rotate(0.77deg);" />
+            <img id="img-10" class="placed-image" src="10.png" style="position: absolute; left: 16.6111%; top: 44.0888%; width: 51.9053%; z-index: 0; transform: translate(-50%, -50%) rotate(2.55deg);" />
+            <img id="img-11" class="placed-image" src="11.png" style="position: absolute; left: 93.9530%; top: 33.6785%; width: 92.9519%; z-index: 0; transform: translate(-50%, -50%) rotate(-11.45deg);" />
 
-            <!-- 階段 2: 自左劃入 (2, 3, 4) -->
-            <img class="placed-image stage-2" src="4.png" style="position: absolute; left: 16.6111%; top: 55.7078%; width: 32.9980%; z-index: 2; --rot: 0.10deg;" />
-            <img class="placed-image stage-2" src="2.png" style="position: absolute; left: 13.1054%; top: 63.5387%; width: 50.7775%; z-index: 4; --rot: -10.70deg;" />
-            <img class="placed-image stage-2" src="3.png" style="position: absolute; left: 18.5396%; top: 69.1282%; width: 37.7037%; z-index: 6; --rot: -11.34deg;" />
+            <img id="img-2" class="placed-image" src="2.png" style="position: absolute; left: 13.1054%; top: 63.5387%; width: 50.7775%; z-index: 4; transform: translate(-50%, -50%) rotate(-10.70deg);" />
+            <img id="img-3" class="placed-image" src="3.png" style="position: absolute; left: 18.5396%; top: 69.1282%; width: 37.7037%; z-index: 6; transform: translate(-50%, -50%) rotate(-11.34deg);" />
+            <img id="img-4" class="placed-image" src="4.png" style="position: absolute; left: 16.6111%; top: 55.7078%; width: 32.9980%; z-index: 2; transform: translate(-50%, -50%) rotate(0.10deg);" />
 
-            <!-- 階段 3: 自右劃入 (5, 6, 9) -->
-            <img class="placed-image stage-3" src="9.png" style="position: absolute; left: 87.4311%; top: 54.8671%; width: 21.5789%; z-index: 2; --rot: 1.17deg;" />
-            <img class="placed-image stage-3" src="5.png" style="position: absolute; left: 78.4764%; top: 60.2211%; width: 31.1608%; z-index: 5; --rot: 0.45deg;" />
-            <img class="placed-image stage-3" src="6.png" style="position: absolute; left: 78.4764%; top: 64.0202%; width: 39.0327%; z-index: 6; --rot: 2.36deg;" />
+            <img id="img-5" class="placed-image" src="5.png" style="position: absolute; left: 78.4764%; top: 60.2211%; width: 31.1608%; z-index: 5; transform: translate(-50%, -50%) rotate(0.45deg);" />
+            <img id="img-6" class="placed-image" src="6.png" style="position: absolute; left: 78.4764%; top: 64.0202%; width: 39.0327%; z-index: 6; transform: translate(-50%, -50%) rotate(2.36deg);" />
+            <img id="img-9" class="placed-image" src="9.png" style="position: absolute; left: 87.4311%; top: 54.8671%; width: 21.5789%; z-index: 2; transform: translate(-50%, -50%) rotate(1.17deg);" />
 
-            <!-- 階段 4: 1.png 放大跳出並縮回中央/既定位置 -->
-            <img class="placed-image stage-4" src="1.png" style="position: absolute; left: 50%; top: 45%; width: 75%; z-index: 10;" />
+            <img id="img-1" class="placed-image" src="1.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 75%; z-index: 10; transform: translate(-50%, -50%) rotate(0.87deg);" />
 
-            <!-- 階段 5: 依次自左右飛入 (13, 14) -->
-            <img class="placed-image stage-5-left" src="14.png" style="position: absolute; left: 11.1558%; top: 12.3079%; width: 27.3993%; z-index: 8; --rot: -3.78deg;" />
-            <img class="placed-image stage-5-left" src="14.png" style="position: absolute; left: 16.6111%; top: 23.5930%; width: 24.9709%; z-index: 8; --rot: -11.04deg;" />
-            <img class="placed-image stage-5-right" src="13.png" style="position: absolute; left: 87.4311%; top: 12.9671%; width: 30.7334%; z-index: 8; --rot: 9.84deg;" />
+            <img id="img-13" class="placed-image" src="13.png" style="position: absolute; left: 87.4311%; top: 12.9671%; width: 30.7334%; z-index: 8; transform: translate(-50%, -50%) rotate(9.84deg);" />
+            <img id="img-14-1" class="placed-image" src="14.png" style="position: absolute; left: 16.6111%; top: 23.5930%; width: 24.9709%; z-index: 8; transform: translate(-50%, -50%) rotate(-11.04deg);" />
+            <img id="img-14-2" class="placed-image" src="14.png" style="position: absolute; left: 11.1558%; top: 12.3079%; width: 27.3993%; z-index: 8; transform: translate(-50%, -50%) rotate(-3.78deg);" />
 
-            <!-- 階段 7: 12自下而上劃入 -->
-            <img class="placed-image stage-7" src="12.png" style="position: absolute; left: 47.8179%; top: 76.8301%; width: 93.3333%; z-index: 8; --rot: 0.87deg;" />
+            <img id="img-12" class="placed-image" src="12.png" style="position: absolute; left: 47.8179%; top: 76.8301%; width: 93.3333%; z-index: 8; transform: translate(-50%, -50%) rotate(0.87deg);" />
 
-            <!-- 階段 8: 按鈕出現 -->
             <div class="bottom-actions-container" id="bottomActions">
                 <div class="action-btn" data-info="flavor">
                     <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
@@ -275,10 +235,9 @@
                 </div>
             </div>
 
-            <!-- 彈窗 -->
             <div class="info-modal" id="infoModal">
                 <h3 id="modalTitle">Title</h3>
-                <p id="modalContent">Description text...</p>
+                <p id="modalContent">Description...</p>
                 <button class="close-modal-btn" onclick="closeModal()">關閉</button>
             </div>
         </div>
@@ -301,63 +260,71 @@
         const particleCanvas = document.getElementById('particleCanvas');
         let animationTimers = [];
 
+        // 點擊遮罩：隱藏遮罩並強制開啟體驗（防止 AR 識別不到造成永久空白）
         audioOverlay.addEventListener('click', () => {
             audioOverlay.style.opacity = '0';
-            setTimeout(() => audioOverlay.style.display = 'none', 500);
+            setTimeout(() => {
+                audioOverlay.style.display = 'none';
+                arUiOverlay.style.display = 'flex';
+                startSequenceAnimation();
+            }, 500);
         });
 
-        // 觸發分階段 sequence 動畫
+        // 核心動畫時間線控制器
         function startSequenceAnimation() {
-            // 清理舊定時器
             animationTimers.forEach(t => clearTimeout(t));
             animationTimers = [];
 
-            // 重置所有元素狀態
-            document.querySelectorAll('.placed-image').forEach(el => el.className = 'placed-image');
+            // 1. 清除舊動畫狀態
+            document.querySelectorAll('.placed-image').forEach(el => {
+                el.classList.remove('anim-fade-in', 'anim-pop-1');
+                el.style.opacity = '0';
+            });
             document.getElementById('typewriterTitle').classList.remove('anim-typewriter');
             document.getElementById('bottomActions').classList.remove('anim-buttons-in');
             particleCanvas.style.opacity = '0';
 
-            // 1. (0s) 7, 10, 11 緩緩浮現
-            document.querySelectorAll('.stage-1').forEach(el => el.classList.add('anim-fade-in'));
-
-            // 2. (1.2s) 2, 3, 4 自左劃入
+            // 階段 1: (0.1s) 7, 10, 11 緩緩浮現
             animationTimers.push(setTimeout(() => {
-                document.querySelectorAll('.stage-2').forEach(el => el.classList.add('anim-slide-left'));
-            }, 1200));
+                ['img-7', 'img-10', 'img-11'].forEach(id => document.getElementById(id).classList.add('anim-fade-in'));
+            }, 100));
 
-            // 3. (2.0s) 5, 6, 9 自右劃入
+            // 階段 2: (1.0s) 2, 3, 4 浮現
             animationTimers.push(setTimeout(() => {
-                document.querySelectorAll('.stage-3').forEach(el => el.classList.add('anim-slide-right'));
-            }, 2000));
+                ['img-2', 'img-3', 'img-4'].forEach(id => document.getElementById(id).classList.add('anim-fade-in'));
+            }, 1000));
 
-            // 4. (2.8s) 1.png 放大一倍跳到中央並縮小
+            // 階段 3: (1.8s) 5, 6, 9 浮現
             animationTimers.push(setTimeout(() => {
-                document.querySelectorAll('.stage-4').forEach(el => el.classList.add('anim-pop-center'));
-            }, 2800));
+                ['img-5', 'img-6', 'img-9'].forEach(id => document.getElementById(id).classList.add('anim-fade-in'));
+            }, 1800));
 
-            // 5. (3.8s) 13, 14 依次自左右飛入
+            // 階段 4: (2.6s) 1.png 放大一倍跳出並回到中央既定位置
             animationTimers.push(setTimeout(() => {
-                document.querySelectorAll('.stage-5-left').forEach(el => el.classList.add('anim-slide-left'));
-                document.querySelectorAll('.stage-5-right').forEach(el => el.classList.add('anim-slide-right'));
+                document.getElementById('img-1').classList.add('anim-pop-1');
+            }, 2600));
+
+            // 階段 5: (3.8s) 13, 14 浮現
+            animationTimers.push(setTimeout(() => {
+                ['img-13', 'img-14-1', 'img-14-2'].forEach(id => document.getElementById(id).classList.add('anim-fade-in'));
             }, 3800));
 
-            // 6. (4.6s) 打字機標題
+            // 階段 6: (4.6s) 頂部標題打字機
             animationTimers.push(setTimeout(() => {
                 document.getElementById('typewriterTitle').classList.add('anim-typewriter');
             }, 4600));
 
-            // 7. (5.8s) 12 自下而上劃入
+            // 階段 7: (5.6s) 12.png 浮現
             animationTimers.push(setTimeout(() => {
-                document.querySelectorAll('.stage-7').forEach(el => el.classList.add('anim-slide-up'));
-            }, 5800));
+                document.getElementById('img-12').classList.add('anim-fade-in');
+            }, 5600));
 
-            // 8. (6.4s) 按鈕出現
+            // 階段 8: (6.3s) 底部按鈕彈出
             animationTimers.push(setTimeout(() => {
                 document.getElementById('bottomActions').classList.add('anim-buttons-in');
-            }, 6400));
+            }, 6300));
 
-            // 9. (7.0s) 灑下金色粒子
+            // 階段 9: (7.0s) 降下金色粒子
             animationTimers.push(setTimeout(() => {
                 particleCanvas.style.opacity = '1';
             }, 7000));
@@ -369,17 +336,15 @@
         });
 
         targetEntity.addEventListener("targetLost", () => {
-            arUiOverlay.style.display = 'none';
             closeModal();
         });
 
-        // 彈窗與粒子 logic
+        // 彈窗與粒子系統
         const modalData = {
-            flavor: { title: "FLAVOR PROFILE", text: "Rich dark chocolate notes paired with subtle wild berry acidity and caramel finish." },
+            flavor: { title: "FLAVOR PROFILE", text: "Rich dark chocolate notes paired with subtle wild berry acidity." },
             origin: { title: "ORIGIN STORY", text: "Hand-harvested in the high-altitude volcanic regions of Timor-Leste." },
-            gift: { title: "EXCLUSIVE GIFT", text: "Show this AR screen at our partner store to claim your complimentary sample." }
+            gift: { title: "EXCLUSIVE GIFT", text: "Show this AR screen at our partner store to claim your sample." }
         };
-        const modal = document.getElementById('infoModal');
 
         document.querySelectorAll('.action-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -387,13 +352,13 @@
                 if (modalData[key]) {
                     document.getElementById('modalTitle').innerText = modalData[key].title;
                     document.getElementById('modalContent').innerText = modalData[key].text;
-                    modal.classList.add('active');
+                    document.getElementById('infoModal').classList.add('active');
                 }
             });
         });
-        function closeModal() { modal.classList.remove('active'); }
+        function closeModal() { document.getElementById('infoModal').classList.remove('active'); }
 
-        // 金色粒子特效
+        // 金色粒子
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
         const stage = document.getElementById('stage');
@@ -412,16 +377,16 @@
             constructor() { this.reset(); }
             reset() {
                 this.x = Math.random() * width;
-                this.y = -20; // 從上方飄落
-                this.size = Math.random() * 3 + 1;
-                this.speedY = Math.random() * 2 + 1;
-                this.speedX = (Math.random() - 0.5) * 0.8;
+                this.y = -10;
+                this.size = Math.random() * 2.5 + 1;
+                this.speedY = Math.random() * 1.5 + 0.8;
+                this.speedX = (Math.random() - 0.5) * 0.5;
                 this.opacity = Math.random() * 0.8 + 0.2;
             }
             update() {
                 this.y += this.speedY;
                 this.x += this.speedX;
-                if (this.y > height + 20) this.reset();
+                if (this.y > height + 10) this.reset();
             }
             draw() {
                 ctx.save();
@@ -434,7 +399,7 @@
             }
         }
 
-        const particles = Array.from({ length: 40 }, () => new GoldParticle());
+        const particles = Array.from({ length: 35 }, () => new GoldParticle());
         function animateParticles() {
             ctx.clearRect(0, 0, width, height);
             particles.forEach(p => { p.update(); p.draw(); });
