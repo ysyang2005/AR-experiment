@@ -47,7 +47,7 @@
             text-align: center;
         }
 
-        /* 外層 2D UI 容器：始終保持 100% 全屏，不進行 scale */
+        /* 全屏 UI 覆蓋層 */
         #ar-ui-overlay {
             position: fixed;
             top: 0;
@@ -66,7 +66,7 @@
             pointer-events: auto;
         }
 
-        /* 內部內容 stage：由 JS 動態調整 scale(...) 實現近大遠小 */
+        /* 響應式 Viewport 容器 */
         .responsive-stage {
             position: relative;
             width: 100vw;
@@ -75,9 +75,6 @@
             overflow: hidden;
             pointer-events: none;
             background: transparent;
-            transform-origin: center center;
-            will-change: transform;
-            transition: transform 0.05s ease-out;
         }
 
         /* 動態金色粒子 Canvas 層 */
@@ -209,9 +206,8 @@
         <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
     </div>
 
-    <!-- 始終保持全屏的 UI 覆蓋層 -->
+    <!-- 全屏 2D UI 內容 -->
     <div id="ar-ui-overlay">
-        <!-- 內容容器：動態接受距離進行內部內容的近大遠小縮放 -->
         <div class="responsive-stage" id="stage">
             <canvas id="particleCanvas" class="particles-canvas"></canvas>
 
@@ -219,7 +215,7 @@
                 <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
             </div>
 
-            <!-- 圖層素材 -->
+            <!-- 圖層素材 (帶專屬金色光暈) -->
             <img class="placed-image" src="7.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 103.4814%; z-index: 0; transform: translate(-50%, -50%) rotate(0.77deg);" />
             <img class="placed-image" src="10.png" style="position: absolute; left: 16.6111%; top: 44.0888%; width: 51.9053%; z-index: 0; transform: translate(-50%, -50%) rotate(2.55deg);" />
             <img class="placed-image" src="11.png" style="position: absolute; left: 93.9530%; top: 33.6785%; width: 92.9519%; z-index: 0; transform: translate(-50%, -50%) rotate(-11.45deg);" />
@@ -259,69 +255,32 @@
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
       
-        <a-camera id="mainCamera" position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
     </a-scene>
 
     <script>
         const targetEntity = document.querySelector('#ar-target');
-        const cameraEntity = document.querySelector('#mainCamera');
         const audioOverlay = document.querySelector('#audio-overlay');
         const arUiOverlay = document.querySelector('#ar-ui-overlay');
-        const stage = document.querySelector('#stage');
-
-        let isTargetFound = false;
 
         audioOverlay.addEventListener('click', () => {
             audioOverlay.style.display = 'none';
         });
 
+        // 識別圖狀態監聽：僅控制全屏 UI 的顯示與隱藏
         targetEntity.addEventListener("targetFound", () => {
-            isTargetFound = true;
             arUiOverlay.style.display = 'flex';
         });
 
         targetEntity.addEventListener("targetLost", () => {
-            isTargetFound = false;
             arUiOverlay.style.display = 'none';
-            stage.style.transform = 'scale(1)';
         });
-
-        // --- 距離縮放控制：縮放 stage 內部的內容，全屏背景不動 ---
-        const targetVec = new THREE.Vector3();
-        const cameraVec = new THREE.Vector3();
-
-        const BASE_DISTANCE = 2.8; // 基準距離
-        const MIN_SCALE = 0.7;      // 距離遠時，內容縮小至 0.7 倍
-        const MAX_SCALE = 1.45;     // 距離近時，內容放大至 1.45 倍
-
-        let currentScale = 1;
-
-        function updateDistanceScale() {
-            if (isTargetFound && targetEntity.object3D && cameraEntity.object3D) {
-                targetEntity.object3D.getWorldPosition(targetVec);
-                cameraEntity.object3D.getWorldPosition(cameraVec);
-
-                const distance = cameraVec.distanceTo(targetVec);
-
-                if (distance > 0) {
-                    const rawScale = BASE_DISTANCE / distance;
-                    const clampedScale = Math.min(Math.max(rawScale, MIN_SCALE), MAX_SCALE);
-                    
-                    // 平滑過渡
-                    currentScale += (clampedScale - currentScale) * 0.15;
-
-                    // 僅作用於 stage 內部內容，保持畫面全屏不變
-                    stage.style.transform = `scale(${currentScale.toFixed(3)})`;
-                }
-            }
-            requestAnimationFrame(updateDistanceScale);
-        }
-        updateDistanceScale();
 
         // --- 金色粒子渲染引擎 ---
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
+        const stage = document.getElementById('stage');
 
         let width, height;
         function resizeCanvas() {
