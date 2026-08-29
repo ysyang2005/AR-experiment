@@ -1,263 +1,146 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TIMOR LESTE - MindAR 3D Space</title>
-    <!-- 引入 A-Frame -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <!-- 引入 MindAR A-Frame 專用組件 -->
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+    
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { margin: 0; overflow: hidden; }
         
-        body, html { 
-            width: 100%; 
-            height: 100%; 
-            overflow: hidden; 
-            background: transparent !important; 
-        }
-
-        /* 相機畫質全屏鋪滿 */
-        video {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            z-index: -2 !important;
-        }
-
-        .a-canvas {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            z-index: 1 !important;
-        }
-        
-        /* 頂部與底部 2D UI 懸浮層 */
-        .ui-container {
+        /* 啟動聲音提示浮層 */
+        #audio-overlay {
             position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            pointer-events: none;
-            z-index: 999;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            opacity: 0;
-            transition: opacity 0.4s ease-in-out;
-        }
-
-        .ui-container.visible {
-            opacity: 1;
-            pointer-events: none;
-        }
-
-        .top-title-container {
-            margin-top: 5vh;
-            width: 90%;
-            text-align: center;
-            pointer-events: none;
-        }
-
-        .top-title {
-            font-family: Impact, "Arial Black", sans-serif;
-            font-size: 8vw;
-            line-height: 0.95;
-            text-transform: uppercase;
-            background: linear-gradient(180deg, #fff3a1 0%, #f7a034 40%, #c43216 80%, #7a1204 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            -webkit-text-stroke: 1px #4a0900;
-            filter: drop-shadow(0px 0px 10px rgba(255, 215, 0, 0.8));
-        }
-
-        .bottom-actions-container {
-            margin-bottom: 4vh;
-            width: 92%;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            pointer-events: auto;
-        }
-
-        .action-btn {
-            position: relative;
-            width: 31%;
-            background: linear-gradient(180deg, #fffef2 0%, #f7e6c4 50%, #e6ca91 100%);
-            border: 1.5px solid #d4af37;
-            border-radius: 12px;
-            padding: 22px 4px 10px 4px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 1px 2px #fff;
-            cursor: pointer;
-        }
-
-        .btn-badge {
-            position: absolute;
-            top: -16px; left: 50%;
-            transform: translateX(-50%);
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            background: radial-gradient(circle, #1a4d2e 0%, #0d2b19 100%);
-            border: 2px solid #f3d085;
-            display: flex; justify-content: center; align-items: center;
-        }
-
-        .btn-badge svg { width: 16px; height: 16px; fill: #f5e2b3; }
-        .btn-text { font-family: Georgia, serif; font-size: 2.5vw; font-weight: bold; color: #3b1d06; }
-
-        /* 掃描提示樣式 */
-        .scan-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: 1000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
             display: flex;
             justify-content: center;
             align-items: center;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
+            z-index: 9999;
+            cursor: pointer;
+            font-family: sans-serif;
         }
-        .scan-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-        .scan-box {
-            width: 60vw;
-            height: 60vw;
-            border: 2px dashed rgba(255, 215, 0, 0.7);
-            border-radius: 20px;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3) inset;
-            animation: scanPulse 2s infinite alternate;
-        }
-        @keyframes scanPulse {
-            0% { border-color: rgba(255, 215, 0, 0.4); transform: scale(1); }
-            100% { border-color: rgba(255, 215, 0, 1); transform: scale(1.02); }
+        
+        .overlay-btn {
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <!-- 掃描中提示框 -->
-    <div class="scan-overlay" id="scanOverlay">
-        <div class="scan-box"></div>
+    <!-- 點擊解鎖聲音覆蓋層 -->
+    <div id="audio-overlay">
+        <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
     </div>
 
-    <!-- 2D UI 疊加層 -->
-    <div class="ui-container" id="uiContainer">
-        <div class="top-title-container">
-            <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
-        </div>
-        <div class="bottom-actions-container">
-            <div class="action-btn" onclick="alert('Flavor Profile clicked!')">
-                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
-                <div class="btn-text">Flavor Profile</div>
-            </div>
-            <div class="action-btn" onclick="alert('Origin Story clicked!')">
-                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg></div>
-                <div class="btn-text">Origin Story</div>
-            </div>
-            <div class="action-btn" onclick="alert('Exclusive Gift clicked!')">
-                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 59 16.17 3.83 12 12 12 3 7 3 2 3 2 5.03 2 7.5 3.5 10 2 12 2 12 2s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg></div>
-                <div class="btn-text">Exclusive Gift</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MindAR 3D 場景 -->
-    <a-scene id="arScene" 
-             mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF: 0.0001; filterBeta: 0.001;" 
-             embedded
+    <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
-             renderer="colorManagement: true; transparent: true; alpha: true;" 
+             renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
-        
+      
         <a-assets>
-            <img id="img1" src="1.png">
-            <img id="img2" src="2.png">
-            <img id="img3" src="3.png">
-            <img id="img4" src="4.png">
-            <img id="img5" src="5.png">
-            <img id="img6" src="6.png">
-            <img id="img7" src="7.png">
-            <img id="img9" src="9.png">
-            <img id="img10" src="10.png">
-            <img id="img11" src="11.png">
-            <img id="img12" src="12.png">
-            <img id="img13" src="13.png">
-            <img id="img14" src="14.png">
+            <video id="video-resource" 
+                   src="1.mp4" 
+                   preload="auto" 
+                   loop 
+                   crossorigin="anonymous" 
+                   playsinline 
+                   webkit-playsinline>
+            </video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <!-- 綁定識別目標 -->
-        <a-entity id="arTarget" mindar-image-target="targetIndex: 0">
-            
-            <!-- 【背景層 - Z: 0.00】 -->
-            <a-image src="#img7" position="0.02 -0.28 0.00" scale="2.07 1.16 1" rotation="0 0 0.77"></a-image>
-            <a-image src="#img10" position="-0.67 0.10 0.02" scale="1.04 0.58 1" rotation="0 0 2.55"></a-image>
-            <a-image src="#img11" position="0.88 0.47 0.02" scale="1.86 1.04 1" rotation="0 0 -11.45"></a-image>
-
-            <!-- 【中景底層 - Z: 0.15】 -->
-            <a-image src="#img4" position="-0.67 -0.31 0.15" scale="0.66 0.37 1" rotation="0 0 0.10"></a-image>
-            <a-image src="#img9" position="0.75 -0.28 0.15" scale="0.43 0.24 1" rotation="0 0 1.17"></a-image>
-
-            <!-- 【中景過渡與核心層 - Z: 0.30 ~ 0.35】 -->
-            <a-image src="#img2" position="-0.74 -0.59 0.30" scale="1.01 0.57 1" rotation="0 0 -10.70"></a-image>
-            <a-image src="#img5" position="0.57 -0.47 0.30" scale="0.62 0.35 1" rotation="0 0 0.45"></a-image>
-            <a-image src="#img3" position="-0.63 -0.82 0.35" scale="0.75 0.42 1" rotation="0 0 -11.34"></a-image>
-            <a-image src="#img6" position="0.57 -0.64 0.35" scale="0.78 0.44 1" rotation="0 0 2.36"></a-image>
-
-            <!-- 【前景核心與懸浮層 - Z: 0.55 ~ 0.85】 -->
-            <a-image src="#img12" position="-0.04 -1.13 0.55" scale="1.86 1.04 1" rotation="0 0 0.87"></a-image>
-            
-            <!-- 主包裝袋：帶輕微浮動 -->
-            <a-image src="#img1" position="-0.22 -0.62 0.65" scale="1.28 0.72 1" rotation="0 0 0.82"
-                     animation="property: position; to: -0.22 -0.59 0.68; dir: alternate; dur: 3000; loop: true; easing: easeInOutSine"></a-image>
-
-            <!-- 前景飛鳥：高 Z 軸立體視差漂浮 -->
-            <a-image src="#img13" position="0.75 1.24 0.80" scale="0.61 0.34 1" rotation="0 0 9.84"
-                     animation="property: position; to: 0.78 1.28 0.85; dir: alternate; dur: 2500; loop: true; easing: easeInOutQuad"></a-image>
-
-            <a-image src="#img14" position="-0.67 0.87 0.75" scale="0.50 0.28 1" rotation="0 0 -11.04"
-                     animation="property: position; to: -0.65 0.90 0.78; dir: alternate; dur: 2800; loop: true; easing: easeInOutQuad"></a-image>
-                     
-            <a-image src="#img14" position="-0.78 1.27 0.75" scale="0.55 0.31 1" rotation="0 0 -3.78"
-                     animation="property: position; to: -0.76 1.30 0.78; dir: alternate; dur: 3200; loop: true; easing: easeInOutQuad"></a-image>
-
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+            <a-video id="ar-video"
+                     src="#video-resource"
+                     position="0 0 0" 
+                     rotation="0 0 0" 
+                     material="shader: flat; transparent: true; side: double;">
+            </a-video>
         </a-entity>
     </a-scene>
 
     <script>
-        const arScene = document.getElementById("arScene");
-        const uiContainer = document.getElementById("uiContainer");
-        const scanOverlay = document.getElementById("scanOverlay");
+        const targetEntity = document.querySelector('#ar-target');
+        const videoResource = document.querySelector('#video-resource');
+        const arVideoEntity = document.querySelector('#ar-video');
+        const audioOverlay = document.querySelector('#audio-overlay');
 
-        // 等待 MindAR 完全就緒後再綁定 targetFound/targetLost
-        arScene.addEventListener("arReady", () => {
-            console.log("🟢 MindAR 初始化完成，開始監聽識別...");
-            const arTarget = document.getElementById("arTarget");
+        const BASE_SIZE = 2;
+        let isAudioUnlocked = false;
 
-            arTarget.addEventListener("targetFound", () => {
-                console.log("🎯 成功識別到標籤！");
-                uiContainer.classList.add("visible");
-                scanOverlay.classList.add("hidden");
+        // 解鎖瀏覽器音訊限制
+        function unlockAudio() {
+            videoResource.muted = false; // 強制開啟聲音
+            // 預先 play & pause 一次以向瀏覽器獲取聲音播放權限
+            videoResource.play().then(() => {
+                videoResource.pause();
+                isAudioUnlocked = true;
+                console.log("🔊 音訊權限已成功解鎖！");
+            }).catch(err => {
+                console.warn("音訊解鎖失敗:", err);
             });
 
-            arTarget.addEventListener("targetLost", () => {
-                console.log("❌ 標籤離開畫面");
-                uiContainer.classList.remove("visible");
-                scanOverlay.classList.remove("hidden");
-            });
+            // 隱藏提示層
+            audioOverlay.style.display = 'none';
+        }
+
+        // 點擊頁面任意位置解鎖聲音
+        audioOverlay.addEventListener('click', unlockAudio);
+
+        function setARVideoRatio() {
+            if (videoResource.videoWidth > 0 && videoResource.videoHeight > 0) {
+                const width = videoResource.videoWidth;
+                const height = videoResource.videoHeight;
+                const aspectRatio = width / height;
+
+                if (aspectRatio >= 1) {
+                    arVideoEntity.setAttribute('width', BASE_SIZE);
+                    arVideoEntity.setAttribute('height', BASE_SIZE / aspectRatio);
+                } else {
+                    arVideoEntity.setAttribute('width', BASE_SIZE * aspectRatio);
+                    arVideoEntity.setAttribute('height', BASE_SIZE);
+                }
+            }
+        }
+
+        if (videoResource.readyState >= 1) {
+            setARVideoRatio();
+        } else {
+            videoResource.addEventListener('loadedmetadata', setARVideoRatio);
+        }
+
+        targetEntity.addEventListener("targetFound", event => {
+            console.log("🎯 識別成功！");
+            // 確保開啟聲音並播放
+            videoResource.muted = false;
+            
+            const playPromise = videoResource.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log("自動有聲播放被阻擋，嘗試靜音播放作為後備方案方案:", error);
+                    videoResource.muted = true;
+                    videoResource.play();
+                });
+            }
         });
 
-        arScene.addEventListener("arError", (err) => {
-            console.error("🔴 MindAR 初始化錯誤:", err);
+        targetEntity.addEventListener("targetLost", event => {
+            console.log("❌ 失去識別標籤，暫停影片");
+            videoResource.pause();
         });
     </script>
 </body>
