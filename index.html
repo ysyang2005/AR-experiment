@@ -1,243 +1,291 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta charset="UTF-8">
+    <title>Timor Leste Kopi Luwak AR</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html { 
-            width: 100vw; 
-            height: 100vh; 
-            height: 100dvh;
+            width: 100%; 
+            height: 100%; 
             overflow: hidden; 
             background: transparent !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
         }
 
+        .a-canvas { background-color: transparent !important; }
+
+        /* 音訊點擊覆蓋層 */
         #audio-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
             color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 9999;
             cursor: pointer;
+            transition: opacity 0.5s ease;
         }
         
         .overlay-btn {
-            background: #007bff;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 30px;
-            font-size: 18px;
-            font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            text-align: center;
+            background: linear-gradient(135deg, #d4af37 0%, #8c681e 100%);
+            color: #fff; padding: 16px 36px; border-radius: 30px;
+            font-size: 18px; font-weight: bold;
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+            text-align: center; border: 1px solid #ffe259;
+            animation: overlayPulse 2s infinite ease-in-out;
         }
 
-        /* 全螢幕 2D 動畫容器 */
-        #ar-2d-stage {
+        @keyframes overlayPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* 全屏 UI 覆蓋層 */
+        #ar-ui-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100dvh;
+            top: 0; left: 0; width: 100vw; height: 100dvh;
             z-index: 1000;
             display: none;
+            justify-content: center; align-items: center;
             pointer-events: none;
+            background: transparent;
+        }
+
+        #ar-ui-overlay * { pointer-events: auto; }
+
+        .responsive-stage {
+            position: relative;
+            width: 100vw; height: 100dvh;
+            max-width: 500px;
             overflow: hidden;
-        }
-
-        #ar-2d-stage * { pointer-events: auto; }
-
-        /* 圖片通用樣式 */
-        .img-layer {
-            position: absolute;
-            user-select: none;
             pointer-events: none;
-            opacity: 0;
-            object-fit: contain;
         }
-
-        /* 2D 圖層佈局位置與層級 (基於螢幕中央相對定位) */
-        #img-7  { width: 85vw; top: 22%; left: 7.5%; z-index: 10; transform: rotate(0.77deg); }
-        #img-10 { width: 45vw; top: 28%; left: 10%;  z-index: 11; transform: rotate(2.55deg); }
-        #img-11 { width: 75vw; top: 18%; right: 5%;  z-index: 11; transform: rotate(-11.45deg); }
-
-        #img-4  { width: 30vw; top: 40%; left: 12%;  z-index: 12; transform: rotate(0.1deg); }
-        #img-2  { width: 42vw; top: 46%; left: 8%;   z-index: 13; transform: rotate(-10.7deg); }
-        #img-3  { width: 32vw; top: 52%; left: 14%;  z-index: 15; transform: rotate(-11.34deg); }
-
-        #img-9  { width: 20vw; top: 40%; right: 12%; z-index: 12; transform: rotate(1.17deg); }
-        #img-5  { width: 28vw; top: 47%; right: 15%; z-index: 13; transform: rotate(0.45deg); }
-        #img-6  { width: 34vw; top: 53%; right: 10%; z-index: 15; transform: rotate(2.36deg); }
-
-        #img-1  { width: 85vw; top: 28%; left: 7.5%; z-index: 20; }
-
-        #img-13   { width: 28vw; top: 12%; right: 15%; z-index: 18; transform: rotate(9.84deg); }
-        #img-14-1 { width: 22vw; top: 16%; left: 15%;  z-index: 18; transform: rotate(-11.04deg); }
-        #img-14-2 { width: 24vw; top: 10%; left: 10%;  z-index: 19; transform: rotate(-3.78deg); }
-
-        #img-12 { width: 100vw; bottom: 8%; left: 0%; z-index: 18; transform: rotate(0.87deg); }
 
         .particles-canvas {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 25;
-            pointer-events: none;
-        }
-
-        /* 標題與按鈕 UI */
-        .top-title-container {
-            position: absolute;
-            top: 4%;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 30;
-            width: 90%;
-            text-align: center;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 15;
             pointer-events: none;
             opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+
+        .placed-image {
+            pointer-events: none;
+            opacity: 0;
+            filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.5));
+            animation-fill-mode: forwards !important;
+        }
+
+        /* ------------------- 動畫分階段 Keyframes ------------------- */
+        
+        /* 階段 1: 緩緩浮現 */
+        .anim-fade-in {
+            animation: fadeIn 1.2s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 階段 2: 左側劃入 */
+        .anim-slide-left {
+            animation: slideLeft 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        @keyframes slideLeft {
+            from { opacity: 0; transform: translate(-150%, -50%) rotate(var(--rot, 0deg)); }
+            to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); }
+        }
+
+        /* 階段 3: 右側劃入 */
+        .anim-slide-right {
+            animation: slideRight 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        @keyframes slideRight {
+            from { opacity: 0; transform: translate(100%, -50%) rotate(var(--rot, 0deg)); }
+            to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); }
+        }
+
+        /* 階段 4: 1.png 放大跳出並縮回 */
+        .anim-pop-center {
+            animation: popCenter 1.0s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes popCenter {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
+            70% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* 階段 7: 自下而上劃入 (12.png) */
+        .anim-slide-up {
+            animation: slideUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translate(-50%, 50%) rotate(var(--rot, 0deg)); }
+            to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); }
+        }
+
+        /* 頂部標題打字機效果 */
+        .top-title-container {
+            position: absolute;
+            top: 3.5%; left: 50%; transform: translateX(-50%);
+            z-index: 20; width: 90%; text-align: center;
+            pointer-events: none;
         }
 
         .top-title {
             font-family: Impact, "Arial Black", sans-serif;
-            font-size: 8vw;
-            font-weight: 900;
-            line-height: 0.95;
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            font-size: 7.5vw; font-weight: 900; line-height: 0.95;
+            letter-spacing: 1px; text-transform: uppercase;
             background: linear-gradient(180deg, #fff3a1 0%, #f7a034 40%, #c43216 80%, #7a1204 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             -webkit-text-stroke: 1px #4a0900;
-            min-height: 2.2em;
-        }
-
-        .bottom-actions-container {
-            position: absolute;
-            bottom: calc(3% + env(safe-area-inset-bottom, 0px));
-            left: 50%;
-            transform: translateX(-50%);
-            width: 92%;
-            max-width: 500px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            z-index: 35;
-        }
-
-        .action-btn {
-            position: relative;
-            width: 31%;
-            background: linear-gradient(180deg, #fffef2 0%, #f7e6c4 50%, #e6ca91 100%);
-            border: 1.5px solid #d4af37;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
-            border-radius: 12px;
-            padding: 20px 2px 8px 2px;
-            text-align: center;
-            cursor: pointer;
+            display: inline-block;
+            white-space: nowrap;
+            overflow: hidden;
+            width: 0;
+            border-right: 3px solid #ffd700;
             opacity: 0;
         }
 
-        .btn-badge {
+        .anim-typewriter {
+            opacity: 1;
+            animation: typing 1.2s steps(18, end) forwards, blink 0.6s step-end infinite alternate;
+        }
+        @keyframes typing { from { width: 0; } to { width: 100%; border-color: transparent; } }
+        @keyframes blink { 50% { border-color: transparent; } }
+
+        /* 底部按鈕欄 */
+        .bottom-actions-container {
             position: absolute;
-            top: -14px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: #1a4d2e;
-            border: 2px solid #f3d085;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            bottom: calc(3.5% + env(safe-area-inset-bottom, 0px));
+            left: 50%; transform: translateX(-50%);
+            width: 92%; display: flex; justify-content: space-between; align-items: flex-end;
+            z-index: 25; opacity: 0;
+        }
+        .anim-buttons-in {
+            animation: buttonsIn 0.6s ease-out forwards;
+        }
+        @keyframes buttonsIn {
+            from { opacity: 0; transform: translate(-50%, 30px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
         }
 
+        .action-btn {
+            position: relative; width: 31%;
+            background: linear-gradient(180deg, #fffef2 0%, #f7e6c4 50%, #e6ca91 100%);
+            border: 1.5px solid #d4af37;
+            border-radius: 12px; padding: 20px 2px 8px 2px;
+            text-align: center; cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+            transition: transform 0.15s ease;
+        }
+        .action-btn:active { transform: scale(0.93); }
+
+        .btn-badge {
+            position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+            width: 28px; height: 28px; border-radius: 50%;
+            background: radial-gradient(circle, #1a4d2e 0%, #0d2b19 100%);
+            border: 2px solid #f3d085;
+            display: flex; justify-content: center; align-items: center;
+        }
         .btn-badge svg { width: 14px; height: 14px; fill: #f5e2b3; }
-        .btn-text { font-size: 2.5vw; font-weight: bold; color: #3b1d06; white-space: nowrap; }
+        .btn-text { font-size: 2.3vw; font-weight: bold; color: #3b1d06; white-space: nowrap; }
+
+        /* 彈窗 */
+        .info-modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+            width: 85%; background: rgba(20, 15, 10, 0.95);
+            border: 2px solid #d4af37; border-radius: 16px; padding: 20px;
+            color: #f7e6c4; z-index: 100; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; text-align: center;
+        }
+        .info-modal.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+        .info-modal h3 { color: #ffd700; font-size: 20px; margin-bottom: 10px; }
+        .close-modal-btn { margin-top: 15px; background: #c43216; color: #fff; border: none; padding: 6px 20px; border-radius: 20px; cursor: pointer; }
 
         @media (min-width: 500px) {
-            .top-title { font-size: 42px; }
-            .btn-text { font-size: 13px; }
-            .action-btn { padding: 22px 4px 10px 4px; }
+            .top-title { font-size: 38px; }
+            .btn-text { font-size: 12px; }
         }
     </style>
 </head>
 <body>
 
     <div id="audio-overlay">
-        <div class="overlay-btn">🔊 點擊螢幕進入 AR 體驗</div>
+        <div class="overlay-btn">✨ 點擊螢幕開啟體驗 ✨</div>
     </div>
 
-    <!-- 2D 圖層動畫 Stage -->
-    <div id="ar-2d-stage">
-        <!-- 背景圖層 -->
-        <img id="img-7" class="img-layer" src="7.png">
-        <img id="img-10" class="img-layer" src="10.png">
-        <img id="img-11" class="img-layer" src="11.png">
+    <div id="ar-ui-overlay">
+        <div class="responsive-stage" id="stage">
+            <canvas id="particleCanvas" class="particles-canvas"></canvas>
 
-        <!-- 左側劃入圖層 -->
-        <img id="img-4" class="img-layer" src="4.png">
-        <img id="img-2" class="img-layer" src="2.png">
-        <img id="img-3" class="img-layer" src="3.png">
-
-        <!-- 右側劃入圖層 -->
-        <img id="img-9" class="img-layer" src="9.png">
-        <img id="img-5" class="img-layer" src="5.png">
-        <img id="img-6" class="img-layer" src="6.png">
-
-        <!-- 中央主圖 -->
-        <img id="img-1" class="img-layer" src="1.png">
-
-        <!-- 上方飛入圖層 -->
-        <img id="img-13" class="img-layer" src="13.png">
-        <img id="img-14-1" class="img-layer" src="14.png">
-        <img id="img-14-2" class="img-layer" src="14.png">
-
-        <!-- 下方劃入圖層 -->
-        <img id="img-12" class="img-layer" src="12.png">
-
-        <!-- 粒子 Canvas -->
-        <canvas id="particleCanvas" class="particles-canvas"></canvas>
-
-        <!-- 標題 UI -->
-        <div class="top-title-container">
-            <h1 class="top-title"></h1>
-        </div>
-
-        <!-- 底部按鈕 UI -->
-        <div class="bottom-actions-container">
-            <div class="action-btn">
-                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
-                <div class="btn-text">Flavor Profile</div>
+            <!-- 頂部標題 -->
+            <div class="top-title-container">
+                <h1 class="top-title" id="typewriterTitle">TIMOR LESTE KOPI LUWAK</h1>
             </div>
-            <div class="action-btn">
-                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg></div>
-                <div class="btn-text">Origin Story</div>
+
+            <!-- 圖層素材 -->
+            <!-- 階段 1: 緩緩浮現 (7, 10, 11) -->
+            <img class="placed-image stage-1" src="7.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 103.4814%; z-index: 0; --rot: 0.77deg; transform: translate(-50%, -50%) rotate(0.77deg);" />
+            <img class="placed-image stage-1" src="10.png" style="position: absolute; left: 16.6111%; top: 44.0888%; width: 51.9053%; z-index: 0; --rot: 2.55deg; transform: translate(-50%, -50%) rotate(2.55deg);" />
+            <img class="placed-image stage-1" src="11.png" style="position: absolute; left: 93.9530%; top: 33.6785%; width: 92.9519%; z-index: 0; --rot: -11.45deg; transform: translate(-50%, -50%) rotate(-11.45deg);" />
+
+            <!-- 階段 2: 自左劃入 (2, 3, 4) -->
+            <img class="placed-image stage-2" src="4.png" style="position: absolute; left: 16.6111%; top: 55.7078%; width: 32.9980%; z-index: 2; --rot: 0.10deg;" />
+            <img class="placed-image stage-2" src="2.png" style="position: absolute; left: 13.1054%; top: 63.5387%; width: 50.7775%; z-index: 4; --rot: -10.70deg;" />
+            <img class="placed-image stage-2" src="3.png" style="position: absolute; left: 18.5396%; top: 69.1282%; width: 37.7037%; z-index: 6; --rot: -11.34deg;" />
+
+            <!-- 階段 3: 自右劃入 (5, 6, 9) -->
+            <img class="placed-image stage-3" src="9.png" style="position: absolute; left: 87.4311%; top: 54.8671%; width: 21.5789%; z-index: 2; --rot: 1.17deg;" />
+            <img class="placed-image stage-3" src="5.png" style="position: absolute; left: 78.4764%; top: 60.2211%; width: 31.1608%; z-index: 5; --rot: 0.45deg;" />
+            <img class="placed-image stage-3" src="6.png" style="position: absolute; left: 78.4764%; top: 64.0202%; width: 39.0327%; z-index: 6; --rot: 2.36deg;" />
+
+            <!-- 階段 4: 1.png 放大跳出並縮回中央/既定位置 -->
+            <img class="placed-image stage-4" src="1.png" style="position: absolute; left: 50%; top: 45%; width: 75%; z-index: 10;" />
+
+            <!-- 階段 5: 依次自左右飛入 (13, 14) -->
+            <img class="placed-image stage-5-left" src="14.png" style="position: absolute; left: 11.1558%; top: 12.3079%; width: 27.3993%; z-index: 8; --rot: -3.78deg;" />
+            <img class="placed-image stage-5-left" src="14.png" style="position: absolute; left: 16.6111%; top: 23.5930%; width: 24.9709%; z-index: 8; --rot: -11.04deg;" />
+            <img class="placed-image stage-5-right" src="13.png" style="position: absolute; left: 87.4311%; top: 12.9671%; width: 30.7334%; z-index: 8; --rot: 9.84deg;" />
+
+            <!-- 階段 7: 12自下而上劃入 -->
+            <img class="placed-image stage-7" src="12.png" style="position: absolute; left: 47.8179%; top: 76.8301%; width: 93.3333%; z-index: 8; --rot: 0.87deg;" />
+
+            <!-- 階段 8: 按鈕出現 -->
+            <div class="bottom-actions-container" id="bottomActions">
+                <div class="action-btn" data-info="flavor">
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+                    <div class="btn-text">Flavor Profile</div>
+                </div>
+                <div class="action-btn" data-info="origin">
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg></div>
+                    <div class="btn-text">Origin Story</div>
+                </div>
+                <div class="action-btn" data-info="gift">
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 59 16.17 3.83 12 12 12 3 7 3 2 3 2 5.03 2 7.5 3.5 10 2 12 2 12 2s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg></div>
+                    <div class="btn-text">Exclusive Gift</div>
+                </div>
             </div>
-            <div class="action-btn">
-                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 12 12 12 12s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg></div>
-                <div class="btn-text">Exclusive Gift</div>
+
+            <!-- 彈窗 -->
+            <div class="info-modal" id="infoModal">
+                <h3 id="modalTitle">Title</h3>
+                <p id="modalContent">Description text...</p>
+                <button class="close-modal-btn" onclick="closeModal()">關閉</button>
             </div>
         </div>
     </div>
 
-    <!-- 僅保留 MindAR 鏡頭追蹤 -->
-    <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1;" 
+    <!-- MindAR 場景 -->
+    <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
              renderer="colorManagement: true, transparent: true, alpha: true" 
              vr-mode-ui="enabled: false" 
@@ -249,108 +297,111 @@
     <script>
         const targetEntity = document.querySelector('#ar-target');
         const audioOverlay = document.querySelector('#audio-overlay');
-        const stage2D = document.querySelector('#ar-2d-stage');
-        const titleEl = document.querySelector('.top-title');
-
-        let isParticleActive = false;
-        let typewriterTimer = null;
+        const arUiOverlay = document.querySelector('#ar-ui-overlay');
+        const particleCanvas = document.getElementById('particleCanvas');
+        let animationTimers = [];
 
         audioOverlay.addEventListener('click', () => {
-            audioOverlay.style.display = 'none';
+            audioOverlay.style.opacity = '0';
+            setTimeout(() => audioOverlay.style.display = 'none', 500);
         });
 
-        // 打字機效果
-        function playTypewriterEffect() {
-            const fullText = "TIMOR LESTE\nKOPI LUWAK";
-            titleEl.innerHTML = "";
-            let i = 0;
-            if (typewriterTimer) clearInterval(typewriterTimer);
-            
-            typewriterTimer = setInterval(() => {
-                if (i < fullText.length) {
-                    const char = fullText.charAt(i);
-                    titleEl.innerHTML += char === '\n' ? '<br>' : char;
-                    i++;
-                } else {
-                    clearInterval(typewriterTimer);
-                }
-            }, 60);
+        // 觸發分階段 sequence 動畫
+        function startSequenceAnimation() {
+            // 清理舊定時器
+            animationTimers.forEach(t => clearTimeout(t));
+            animationTimers = [];
+
+            // 重置所有元素狀態
+            document.querySelectorAll('.placed-image').forEach(el => el.className = 'placed-image');
+            document.getElementById('typewriterTitle').classList.remove('anim-typewriter');
+            document.getElementById('bottomActions').classList.remove('anim-buttons-in');
+            particleCanvas.style.opacity = '0';
+
+            // 1. (0s) 7, 10, 11 緩緩浮現
+            document.querySelectorAll('.stage-1').forEach(el => el.classList.add('anim-fade-in'));
+
+            // 2. (1.2s) 2, 3, 4 自左劃入
+            animationTimers.push(setTimeout(() => {
+                document.querySelectorAll('.stage-2').forEach(el => el.classList.add('anim-slide-left'));
+            }, 1200));
+
+            // 3. (2.0s) 5, 6, 9 自右劃入
+            animationTimers.push(setTimeout(() => {
+                document.querySelectorAll('.stage-3').forEach(el => el.classList.add('anim-slide-right'));
+            }, 2000));
+
+            // 4. (2.8s) 1.png 放大一倍跳到中央並縮小
+            animationTimers.push(setTimeout(() => {
+                document.querySelectorAll('.stage-4').forEach(el => el.classList.add('anim-pop-center'));
+            }, 2800));
+
+            // 5. (3.8s) 13, 14 依次自左右飛入
+            animationTimers.push(setTimeout(() => {
+                document.querySelectorAll('.stage-5-left').forEach(el => el.classList.add('anim-slide-left'));
+                document.querySelectorAll('.stage-5-right').forEach(el => el.classList.add('anim-slide-right'));
+            }, 3800));
+
+            // 6. (4.6s) 打字機標題
+            animationTimers.push(setTimeout(() => {
+                document.getElementById('typewriterTitle').classList.add('anim-typewriter');
+            }, 4600));
+
+            // 7. (5.8s) 12 自下而上劃入
+            animationTimers.push(setTimeout(() => {
+                document.querySelectorAll('.stage-7').forEach(el => el.classList.add('anim-slide-up'));
+            }, 5800));
+
+            // 8. (6.4s) 按鈕出現
+            animationTimers.push(setTimeout(() => {
+                document.getElementById('bottomActions').classList.add('anim-buttons-in');
+            }, 6400));
+
+            // 9. (7.0s) 灑下金色粒子
+            animationTimers.push(setTimeout(() => {
+                particleCanvas.style.opacity = '1';
+            }, 7000));
         }
 
-        // GSAP 2D 時間軸
-        let tl = gsap.timeline({ paused: true });
-
-        function build2DTimeline() {
-            tl.kill();
-            tl = gsap.timeline({ paused: true });
-
-            // 重置所有圖層狀態
-            gsap.set('.img-layer', { opacity: 0 });
-            gsap.set('#img-2, #img-3, #img-4', { x: '-100vw' });
-            gsap.set('#img-5, #img-6, #img-9', { x: '100vw' });
-            gsap.set('#img-13', { x: '-100vw' });
-            gsap.set('#img-14-1, #img-14-2', { x: '100vw' });
-            gsap.set('#img-12', { y: '100vh' });
-            gsap.set('#img-1', { scale: 0.2 });
-
-            // 1. 7, 10, 11 背景浮現
-            tl.to('#img-7, #img-10, #img-11', { duration: 1.2, opacity: 1, ease: 'power1.out' })
-
-            // 2. 2, 3, 4 左側劃入
-            .to('#img-2, #img-3, #img-4', { duration: 0.8, x: 0, opacity: 1, ease: 'power2.out', stagger: 0.1 }, "-=0.4")
-
-            // 3. 5, 6, 9 右側劃入
-            .to('#img-5, #img-6, #img-9', { duration: 0.8, x: 0, opacity: 1, ease: 'power2.out', stagger: 0.1 }, "-=0.6")
-
-            // 4. 1 主圖彈跳放大放大再回到標準大小
-            .to('#img-1', { duration: 0.5, opacity: 1, scale: 1.2, ease: 'back.out(1.7)' })
-            .to('#img-1', { duration: 0.4, scale: 1, ease: 'power1.inOut' })
-
-            // 5. 13 (左飛入), 14 (右飛入)
-            .to('#img-13', { duration: 0.6, x: 0, opacity: 1, ease: 'power2.out' }, "-=0.2")
-            .to('#img-14-1, #img-14-2', { duration: 0.6, x: 0, opacity: 1, ease: 'power2.out', stagger: 0.1 }, "-=0.5")
-
-            // 6. 標題打字機
-            .to('.top-title-container', { duration: 0.1, opacity: 1 })
-            .add(() => playTypewriterEffect())
-
-            // 7. 12 自下而上劃入
-            .to('#img-12', { duration: 0.8, y: 0, opacity: 1, ease: 'power2.out' }, "-=0.2")
-
-            // 8. 底部按鈕
-            .fromTo('.action-btn',
-                { y: 30, opacity: 0, scale: 0.8 },
-                { duration: 0.6, y: 0, opacity: 1, scale: 1, ease: 'back.out(1.5)', stagger: 0.15 },
-                "-=0.3"
-            )
-
-            // 9. 金色粒子登場
-            .add(() => { isParticleActive = true; });
-        }
-
-        // 識別圖狀態監聽
         targetEntity.addEventListener("targetFound", () => {
-            stage2D.style.display = 'block';
-            build2DTimeline();
-            tl.restart();
+            arUiOverlay.style.display = 'flex';
+            startSequenceAnimation();
         });
 
         targetEntity.addEventListener("targetLost", () => {
-            stage2D.style.display = 'none';
-            tl.pause(0);
-            isParticleActive = false;
-            if (typewriterTimer) clearInterval(typewriterTimer);
-            titleEl.innerHTML = "";
+            arUiOverlay.style.display = 'none';
+            closeModal();
         });
 
-        // --- 金色粒子渲染引擎 ---
+        // 彈窗與粒子 logic
+        const modalData = {
+            flavor: { title: "FLAVOR PROFILE", text: "Rich dark chocolate notes paired with subtle wild berry acidity and caramel finish." },
+            origin: { title: "ORIGIN STORY", text: "Hand-harvested in the high-altitude volcanic regions of Timor-Leste." },
+            gift: { title: "EXCLUSIVE GIFT", text: "Show this AR screen at our partner store to claim your complimentary sample." }
+        };
+        const modal = document.getElementById('infoModal');
+
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.getAttribute('data-info');
+                if (modalData[key]) {
+                    document.getElementById('modalTitle').innerText = modalData[key].title;
+                    document.getElementById('modalContent').innerText = modalData[key].text;
+                    modal.classList.add('active');
+                }
+            });
+        });
+        function closeModal() { modal.classList.remove('active'); }
+
+        // 金色粒子特效
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
-
+        const stage = document.getElementById('stage');
         let width, height;
+
         function resizeCanvas() {
-            width = window.innerWidth;
-            height = window.innerHeight;
+            width = stage.clientWidth;
+            height = stage.clientHeight;
             canvas.width = width;
             canvas.height = height;
         }
@@ -361,57 +412,32 @@
             constructor() { this.reset(); }
             reset() {
                 this.x = Math.random() * width;
-                this.y = -10 - Math.random() * 20;
+                this.y = -20; // 從上方飄落
                 this.size = Math.random() * 3 + 1;
-                this.speedY = Math.random() * 1.8 + 0.6;
+                this.speedY = Math.random() * 2 + 1;
                 this.speedX = (Math.random() - 0.5) * 0.8;
                 this.opacity = Math.random() * 0.8 + 0.2;
-                this.pulseSpeed = Math.random() * 0.03 + 0.01;
-                this.isSparkle = Math.random() < 0.3;
             }
             update() {
-                if (!isParticleActive) return;
                 this.y += this.speedY;
                 this.x += this.speedX;
-                this.opacity += Math.sin(Date.now() * this.pulseSpeed) * 0.015;
-                if (this.y > height + 20 || this.opacity <= 0) this.reset();
+                if (this.y > height + 20) this.reset();
             }
             draw() {
-                if (!isParticleActive) return;
                 ctx.save();
-                ctx.globalAlpha = Math.max(0, Math.min(1, this.opacity));
-                if (this.isSparkle) {
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.fillStyle = '#ffe259';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.size * 0.5, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.moveTo(this.x - this.size * 3.5, this.y); ctx.lineTo(this.x + this.size * 3.5, this.y);
-                    ctx.moveTo(this.x, this.y - this.size * 3.5); ctx.lineTo(this.x, this.y + this.size * 3.5);
-                    ctx.stroke();
-                } else {
-                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2.5);
-                    gradient.addColorStop(0, '#ffffff');
-                    gradient.addColorStop(0.3, '#ffd700');
-                    gradient.addColorStop(0.7, 'rgba(212, 175, 55, 0.4)');
-                    gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.size * 2.5, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+                ctx.globalAlpha = this.opacity;
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
                 ctx.restore();
             }
         }
 
-        const particles = Array.from({ length: 65 }, () => new GoldParticle());
+        const particles = Array.from({ length: 40 }, () => new GoldParticle());
         function animateParticles() {
             ctx.clearRect(0, 0, width, height);
-            if (isParticleActive) {
-                particles.forEach(p => { p.update(); p.draw(); });
-            }
+            particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animateParticles);
         }
         animateParticles();
