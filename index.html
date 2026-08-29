@@ -47,7 +47,7 @@
             text-align: center;
         }
 
-        /* 識別成功後顯示的 UI 容器 */
+        /* 全屏 UI 覆蓋層 */
         #ar-ui-overlay {
             position: fixed;
             top: 0;
@@ -60,9 +60,6 @@
             align-items: center;
             pointer-events: none;
             background: transparent;
-            /* 縮放動畫中心點為螢幕中央 */
-            transform-origin: center center;
-            transition: opacity 0.2s ease;
         }
 
         #ar-ui-overlay * {
@@ -91,8 +88,23 @@
             pointer-events: none;
         }
 
+        /* 每個 PNG 圖層專屬金色光暈 */
         .placed-image {
             pointer-events: none;
+            filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.6)) 
+                    drop-shadow(0px 0px 18px rgba(212, 175, 55, 0.4));
+            animation: pngGoldenGlow 3s infinite alternate ease-in-out;
+        }
+
+        @keyframes pngGoldenGlow {
+            0% {
+                filter: drop-shadow(0px 0px 5px rgba(255, 215, 0, 0.5)) 
+                        drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.3));
+            }
+            100% {
+                filter: drop-shadow(0px 0px 12px rgba(255, 230, 120, 0.8)) 
+                        drop-shadow(0px 0px 25px rgba(255, 191, 0, 0.6));
+            }
         }
 
         /* 頂部藝術標題 */
@@ -122,8 +134,8 @@
         }
 
         @keyframes titleGlow {
-            0% { filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0px 0px 6px rgba(247, 160, 52, 0.4)); }
-            100% { filter: drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.9)) drop-shadow(0px 0px 18px rgba(255, 215, 0, 0.9)); }
+            0% { filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0px 0px 8px rgba(247, 160, 52, 0.5)); }
+            100% { filter: drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.9)) drop-shadow(0px 0px 22px rgba(255, 215, 0, 0.95)); }
         }
 
         /* 底部按鈕欄容器 */
@@ -139,7 +151,6 @@
             z-index: 25;
         }
 
-        /* 按鈕結構 */
         .action-btn {
             position: relative;
             width: 31%;
@@ -151,46 +162,13 @@
             text-align: center;
             cursor: pointer;
             overflow: visible;
-            transition: transform 0.15s ease;
             animation: buttonPulse 3s infinite alternate ease-in-out;
-        }
-
-        .shimmer-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border-radius: 10px;
-            overflow: hidden;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .shimmer-layer::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -150%;
-            width: 100%;
-            height: 200%;
-            background: linear-gradient(60deg, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%);
-            transform: rotate(25deg);
-            animation: shimmerSweep 4s infinite ease-in-out;
-        }
-
-        @keyframes shimmerSweep {
-            0% { left: -150%; }
-            30% { left: 150%; }
-            100% { left: 150%; }
         }
 
         @keyframes buttonPulse {
             0% { box-shadow: 0 0 0 1px #8c681e, 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 1px 2px #ffffff, 0 0 4px rgba(212, 175, 55, 0.3); }
-            100% { box-shadow: 0 0 0 1px #d4af37, 0 4px 12px rgba(0, 0, 0, 0.8), inset 0 1px 4px #ffffff, 0 0 12px rgba(255, 215, 0, 0.8); }
+            100% { box-shadow: 0 0 0 1px #d4af37, 0 4px 12px rgba(0, 0, 0, 0.8), inset 0 1px 4px #ffffff, 0 0 14px rgba(255, 215, 0, 0.9); }
         }
-
-        .action-btn:active { transform: scale(0.96); }
 
         .btn-badge {
             position: absolute;
@@ -209,24 +187,8 @@
             z-index: 5;
         }
 
-        .btn-badge svg {
-            width: 14px;
-            height: 14px;
-            fill: #f5e2b3;
-            filter: drop-shadow(0 0 2px rgba(245, 226, 179, 0.8));
-        }
-
-        .btn-text {
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 2.3vw;
-            font-weight: bold;
-            color: #3b1d06;
-            white-space: nowrap;
-            letter-spacing: -0.2px;
-            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
-            position: relative;
-            z-index: 2;
-        }
+        .btn-badge svg { width: 14px; height: 14px; fill: #f5e2b3; }
+        .btn-text { font-size: 2.3vw; font-weight: bold; color: #3b1d06; white-space: nowrap; }
 
         @media (min-width: 500px) {
             .top-title { font-size: 38px; }
@@ -244,7 +206,7 @@
         <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
     </div>
 
-    <!-- 識別成功後顯示的 UI 內容 -->
+    <!-- 全屏 2D UI 內容 -->
     <div id="ar-ui-overlay">
         <div class="responsive-stage" id="stage">
             <canvas id="particleCanvas" class="particles-canvas"></canvas>
@@ -253,7 +215,7 @@
                 <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
             </div>
 
-            <!-- 圖層素材 -->
+            <!-- 圖層素材 (帶專屬金色光暈) -->
             <img class="placed-image" src="7.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 103.4814%; z-index: 0; transform: translate(-50%, -50%) rotate(0.77deg);" />
             <img class="placed-image" src="10.png" style="position: absolute; left: 16.6111%; top: 44.0888%; width: 51.9053%; z-index: 0; transform: translate(-50%, -50%) rotate(2.55deg);" />
             <img class="placed-image" src="11.png" style="position: absolute; left: 93.9530%; top: 33.6785%; width: 92.9519%; z-index: 0; transform: translate(-50%, -50%) rotate(-11.45deg);" />
@@ -271,26 +233,15 @@
 
             <div class="bottom-actions-container">
                 <div class="action-btn">
-                    <div class="shimmer-layer"></div>
-                    <div class="btn-badge">
-                        <svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-                    </div>
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
                     <div class="btn-text">Flavor Profile</div>
                 </div>
-                
                 <div class="action-btn">
-                    <div class="shimmer-layer"></div>
-                    <div class="btn-badge">
-                        <svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg>
-                    </div>
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg></div>
                     <div class="btn-text">Origin Story</div>
                 </div>
-                
                 <div class="action-btn">
-                    <div class="shimmer-layer"></div>
-                    <div class="btn-badge">
-                        <svg viewBox="0 0 24 24"><path d="M17 8C8 10 59 16.17 3.83 12 12 12 3 7 3 2 3 2 5.03 2 7.5 3.5 10 2 12 2 12 2s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg>
-                    </div>
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 59 16.17 3.83 12 12 12 3 7 3 2 3 2 5.03 2 7.5 3.5 10 2 12 2 12 2s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg></div>
                     <div class="btn-text">Exclusive Gift</div>
                 </div>
             </div>
@@ -305,7 +256,6 @@
              device-orientation-permission-ui="enabled: false">
       
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
     </a-scene>
 
@@ -314,63 +264,20 @@
         const audioOverlay = document.querySelector('#audio-overlay');
         const arUiOverlay = document.querySelector('#ar-ui-overlay');
 
-        let isTargetFound = false;
-        let currentScale = 1;
-        let targetScale = 1;
-
-        function unlockAudio() {
+        audioOverlay.addEventListener('click', () => {
             audioOverlay.style.display = 'none';
-        }
-        audioOverlay.addEventListener('click', unlockAudio);
+        });
 
-        // --- 識別邏輯控制 ---
+        // 識別圖狀態監聽：僅控制全屏 UI 的顯示與隱藏
         targetEntity.addEventListener("targetFound", () => {
-            console.log("🎯 識別成功！");
-            isTargetFound = true;
             arUiOverlay.style.display = 'flex';
         });
 
         targetEntity.addEventListener("targetLost", () => {
-            console.log("❌ 失去識別標籤");
-            isTargetFound = false;
             arUiOverlay.style.display = 'none';
-            arUiOverlay.style.transform = 'scale(1)'; // 重置 Scale
         });
 
-        // --- 距離縮放計算引擎 ---
-        // 基準距離參數 (可根據你的標籤大小微調)
-        const BASE_DISTANCE = 2.5; // 標準距離 (Scale = 1.0)
-        const MIN_SCALE = 0.65;    // 最遠拉遠時最小縮放比
-        const MAX_SCALE = 1.35;    // 最近拉近時最大縮放比
-
-        function updateDistanceScale() {
-            if (isTargetFound && targetEntity.object3D) {
-                // 取得 3D 世界座標中的 Z 軸深度 (距離相機近遠)
-                const position = targetEntity.object3D.position;
-                const distance = Math.sqrt(position.x * position.x + position.y * position.y + position.z * position.z);
-
-                if (distance > 0) {
-                    // 計算縮放：距離越近（distance 小），scale 越大
-                    const calculatedScale = BASE_DISTANCE / distance;
-                    
-                    // 限制縮放邊界
-                    targetScale = Math.min(Math.max(calculatedScale, MIN_SCALE), MAX_SCALE);
-
-                    // Lerp 平滑插值，避免手抖導致 UI 強烈抖動
-                    currentScale += (targetScale - currentScale) * 0.15;
-                    
-                    // 應用到 UI 容器的 CSS Transform
-                    arUiOverlay.style.transform = `scale(${currentScale.toFixed(3)})`;
-                }
-            }
-
-            requestAnimationFrame(updateDistanceScale);
-        }
-
-        // 啟動距離監測動畫循環
-        updateDistanceScale();
-
-        // --- 金色粒子 Engine ---
+        // --- 金色粒子渲染引擎 ---
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
         const stage = document.getElementById('stage');
@@ -385,75 +292,57 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        class Particle {
-            constructor() {
-                this.reset();
-            }
-
+        class GoldParticle {
+            constructor() { this.reset(); }
             reset() {
                 this.x = Math.random() * width;
-                this.y = height + Math.random() * 20;
-                this.size = Math.random() * 2.5 + 0.5;
-                this.speedY = Math.random() * 1.2 + 0.3;
-                this.speedX = (Math.random() - 0.5) * 0.4;
-                this.opacity = Math.random() * 0.7 + 0.3;
-                this.pulseSpeed = Math.random() * 0.02 + 0.005;
-                this.isSparkle = Math.random() < 0.25;
+                this.y = height + Math.random() * 30;
+                this.size = Math.random() * 3 + 1;
+                this.speedY = Math.random() * 1.5 + 0.4;
+                this.speedX = (Math.random() - 0.5) * 0.6;
+                this.opacity = Math.random() * 0.8 + 0.2;
+                this.pulseSpeed = Math.random() * 0.03 + 0.01;
+                this.isSparkle = Math.random() < 0.3;
             }
-
             update() {
                 this.y -= this.speedY;
                 this.x += this.speedX;
-                this.opacity += Math.sin(Date.now() * this.pulseSpeed) * 0.01;
-
-                if (this.y < -10 || this.opacity <= 0) {
-                    this.reset();
-                }
+                this.opacity += Math.sin(Date.now() * this.pulseSpeed) * 0.015;
+                if (this.y < -20 || this.opacity <= 0) this.reset();
             }
-
             draw() {
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, Math.min(1, this.opacity));
-
                 if (this.isSparkle) {
-                    ctx.strokeStyle = '#fff5aa';
-                    ctx.fillStyle = '#ffd700';
-                    ctx.lineWidth = 0.8;
-                    
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.fillStyle = '#ffe259';
+                    ctx.lineWidth = 1;
                     ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.size * 0.6, 0, Math.PI * 2);
+                    ctx.arc(this.x, this.y, this.size * 0.5, 0, Math.PI * 2);
                     ctx.fill();
-
                     ctx.beginPath();
-                    ctx.moveTo(this.x - this.size * 3, this.y);
-                    ctx.lineTo(this.x + this.size * 3, this.y);
-                    ctx.moveTo(this.x, this.y - this.size * 3);
-                    ctx.lineTo(this.x, this.y + this.size * 3);
+                    ctx.moveTo(this.x - this.size * 3.5, this.y); ctx.lineTo(this.x + this.size * 3.5, this.y);
+                    ctx.moveTo(this.x, this.y - this.size * 3.5); ctx.lineTo(this.x, this.y + this.size * 3.5);
                     ctx.stroke();
                 } else {
-                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2.5);
                     gradient.addColorStop(0, '#ffffff');
-                    gradient.addColorStop(0.4, '#ffd700');
+                    gradient.addColorStop(0.3, '#ffd700');
+                    gradient.addColorStop(0.7, 'rgba(212, 175, 55, 0.4)');
                     gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
-                    
                     ctx.fillStyle = gradient;
                     ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+                    ctx.arc(this.x, this.y, this.size * 2.5, 0, Math.PI * 2);
                     ctx.fill();
                 }
-
                 ctx.restore();
             }
         }
 
-        const particles = Array.from({ length: 45 }, () => new Particle());
-
+        const particles = Array.from({ length: 50 }, () => new GoldParticle());
         function animateParticles() {
             ctx.clearRect(0, 0, width, height);
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
+            particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animateParticles);
         }
         animateParticles();
