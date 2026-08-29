@@ -18,12 +18,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
         }
 
-        .a-canvas {
-            width: 100% !important;
-            height: 100% !important;
-            background-color: transparent !important;
-        }
-
         #audio-overlay {
             position: fixed;
             top: 0;
@@ -50,7 +44,8 @@
             text-align: center;
         }
 
-        #ar-ui-overlay {
+        /* 全螢幕 2D 動畫容器 */
+        #ar-2d-stage {
             position: fixed;
             top: 0;
             left: 0;
@@ -58,22 +53,41 @@
             height: 100dvh;
             z-index: 1000;
             display: none;
-            justify-content: center;
-            align-items: center;
             pointer-events: none;
-            background: transparent;
-        }
-
-        #ar-ui-overlay * { pointer-events: auto; }
-
-        .responsive-stage {
-            position: relative;
-            width: 100vw;
-            height: 100dvh;
             overflow: hidden;
-            pointer-events: none;
-            background: transparent;
         }
+
+        #ar-2d-stage * { pointer-events: auto; }
+
+        /* 圖片通用樣式 */
+        .img-layer {
+            position: absolute;
+            user-select: none;
+            pointer-events: none;
+            opacity: 0;
+            object-fit: contain;
+        }
+
+        /* 2D 圖層佈局位置與層級 (基於螢幕中央相對定位) */
+        #img-7  { width: 85vw; top: 22%; left: 7.5%; z-index: 10; transform: rotate(0.77deg); }
+        #img-10 { width: 45vw; top: 28%; left: 10%;  z-index: 11; transform: rotate(2.55deg); }
+        #img-11 { width: 75vw; top: 18%; right: 5%;  z-index: 11; transform: rotate(-11.45deg); }
+
+        #img-4  { width: 30vw; top: 40%; left: 12%;  z-index: 12; transform: rotate(0.1deg); }
+        #img-2  { width: 42vw; top: 46%; left: 8%;   z-index: 13; transform: rotate(-10.7deg); }
+        #img-3  { width: 32vw; top: 52%; left: 14%;  z-index: 15; transform: rotate(-11.34deg); }
+
+        #img-9  { width: 20vw; top: 40%; right: 12%; z-index: 12; transform: rotate(1.17deg); }
+        #img-5  { width: 28vw; top: 47%; right: 15%; z-index: 13; transform: rotate(0.45deg); }
+        #img-6  { width: 34vw; top: 53%; right: 10%; z-index: 15; transform: rotate(2.36deg); }
+
+        #img-1  { width: 85vw; top: 28%; left: 7.5%; z-index: 20; }
+
+        #img-13   { width: 28vw; top: 12%; right: 15%; z-index: 18; transform: rotate(9.84deg); }
+        #img-14-1 { width: 22vw; top: 16%; left: 15%;  z-index: 18; transform: rotate(-11.04deg); }
+        #img-14-2 { width: 24vw; top: 10%; left: 10%;  z-index: 19; transform: rotate(-3.78deg); }
+
+        #img-12 { width: 100vw; bottom: 8%; left: 0%; z-index: 18; transform: rotate(0.87deg); }
 
         .particles-canvas {
             position: absolute;
@@ -81,16 +95,17 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 15;
+            z-index: 25;
             pointer-events: none;
         }
 
+        /* 標題與按鈕 UI */
         .top-title-container {
             position: absolute;
             top: 4%;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 20;
+            z-index: 30;
             width: 90%;
             text-align: center;
             pointer-events: none;
@@ -98,7 +113,7 @@
         }
 
         .top-title {
-            font-family: Impact, "Arial Black", "Trebuchet MS", sans-serif;
+            font-family: Impact, "Arial Black", sans-serif;
             font-size: 8vw;
             font-weight: 900;
             line-height: 0.95;
@@ -108,18 +123,12 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             -webkit-text-stroke: 1px #4a0900;
-            animation: titleGlow 2.5s infinite alternate ease-in-out;
             min-height: 2.2em;
-        }
-
-        @keyframes titleGlow {
-            0% { filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0px 0px 8px rgba(247, 160, 52, 0.5)); }
-            100% { filter: drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.9)) drop-shadow(0px 0px 22px rgba(255, 215, 0, 0.95)); }
         }
 
         .bottom-actions-container {
             position: absolute;
-            bottom: calc(4% + env(safe-area-inset-bottom, 0px));
+            bottom: calc(3% + env(safe-area-inset-bottom, 0px));
             left: 50%;
             transform: translateX(-50%);
             width: 92%;
@@ -127,7 +136,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            z-index: 25;
+            z-index: 35;
         }
 
         .action-btn {
@@ -135,19 +144,12 @@
             width: 31%;
             background: linear-gradient(180deg, #fffef2 0%, #f7e6c4 50%, #e6ca91 100%);
             border: 1.5px solid #d4af37;
-            box-shadow: 0 0 0 1px #8c681e, 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 1px 2px #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
             border-radius: 12px;
             padding: 20px 2px 8px 2px;
             text-align: center;
             cursor: pointer;
-            overflow: visible;
             opacity: 0;
-            animation: buttonPulse 3s infinite alternate ease-in-out;
-        }
-
-        @keyframes buttonPulse {
-            0% { box-shadow: 0 0 0 1px #8c681e, 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 1px 2px #ffffff, 0 0 4px rgba(212, 175, 55, 0.3); }
-            100% { box-shadow: 0 0 0 1px #d4af37, 0 4px 12px rgba(0, 0, 0, 0.8), inset 0 1px 4px #ffffff, 0 0 14px rgba(255, 215, 0, 0.9); }
         }
 
         .btn-badge {
@@ -158,13 +160,11 @@
             width: 28px;
             height: 28px;
             border-radius: 50%;
-            background: radial-gradient(circle, #1a4d2e 0%, #0d2b19 100%);
+            background: #1a4d2e;
             border: 2px solid #f3d085;
-            box-shadow: 0 0 0 1px #6e4e13, 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(243, 208, 133, 0.6);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 5;
         }
 
         .btn-badge svg { width: 14px; height: 14px; fill: #f5e2b3; }
@@ -174,85 +174,82 @@
             .top-title { font-size: 42px; }
             .btn-text { font-size: 13px; }
             .action-btn { padding: 22px 4px 10px 4px; }
-            .btn-badge { top: -16px; width: 32px; height: 32px; }
-            .btn-badge svg { width: 16px; height: 16px; }
         }
     </style>
 </head>
 <body>
 
     <div id="audio-overlay">
-        <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
+        <div class="overlay-btn">🔊 點擊螢幕進入 AR 體驗</div>
     </div>
 
-    <div id="ar-ui-overlay">
-        <div class="responsive-stage" id="stage">
-            <canvas id="particleCanvas" class="particles-canvas"></canvas>
+    <!-- 2D 圖層動畫 Stage -->
+    <div id="ar-2d-stage">
+        <!-- 背景圖層 -->
+        <img id="img-7" class="img-layer" src="7.png">
+        <img id="img-10" class="img-layer" src="10.png">
+        <img id="img-11" class="img-layer" src="11.png">
 
-            <div class="top-title-container">
-                <h1 class="top-title"></h1>
+        <!-- 左側劃入圖層 -->
+        <img id="img-4" class="img-layer" src="4.png">
+        <img id="img-2" class="img-layer" src="2.png">
+        <img id="img-3" class="img-layer" src="3.png">
+
+        <!-- 右側劃入圖層 -->
+        <img id="img-9" class="img-layer" src="9.png">
+        <img id="img-5" class="img-layer" src="5.png">
+        <img id="img-6" class="img-layer" src="6.png">
+
+        <!-- 中央主圖 -->
+        <img id="img-1" class="img-layer" src="1.png">
+
+        <!-- 上方飛入圖層 -->
+        <img id="img-13" class="img-layer" src="13.png">
+        <img id="img-14-1" class="img-layer" src="14.png">
+        <img id="img-14-2" class="img-layer" src="14.png">
+
+        <!-- 下方劃入圖層 -->
+        <img id="img-12" class="img-layer" src="12.png">
+
+        <!-- 粒子 Canvas -->
+        <canvas id="particleCanvas" class="particles-canvas"></canvas>
+
+        <!-- 標題 UI -->
+        <div class="top-title-container">
+            <h1 class="top-title"></h1>
+        </div>
+
+        <!-- 底部按鈕 UI -->
+        <div class="bottom-actions-container">
+            <div class="action-btn">
+                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+                <div class="btn-text">Flavor Profile</div>
             </div>
-
-            <div class="bottom-actions-container">
-                <div class="action-btn">
-                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
-                    <div class="btn-text">Flavor Profile</div>
-                </div>
-                <div class="action-btn">
-                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg></div>
-                    <div class="btn-text">Origin Story</div>
-                </div>
-                <div class="action-btn">
-                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 59 16.17 3.83 12 12 12 3 7 3 2 3 2 5.03 2 7.5 3.5 10 2 12 2 12 2s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg></div>
-                    <div class="btn-text">Exclusive Gift</div>
-                </div>
+            <div class="action-btn">
+                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg></div>
+                <div class="btn-text">Origin Story</div>
+            </div>
+            <div class="action-btn">
+                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 12 12 12 12s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg></div>
+                <div class="btn-text">Exclusive Gift</div>
             </div>
         </div>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
+    <!-- 僅保留 MindAR 鏡頭追蹤 -->
+    <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1;" 
              color-space="sRGB" 
              renderer="colorManagement: true, transparent: true, alpha: true" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
-      
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-        <a-entity id="ar-target" mindar-image-target="targetIndex: 0" scale="2.2 2.2 2.2">
-            
-            <!-- 7, 10, 11 (背景層) -->
-            <a-plane id="plane-7" src="7.png" position="0.01 -0.08 0.01" width="1.03" height="0.65" rotation="0 0 0.77" material="transparent: true; opacity: 0;" render-order="990"></a-plane>
-            <a-plane id="plane-10" src="10.png" position="-0.33 0.09 0.02" width="0.52" height="0.33" rotation="0 0 2.55" material="transparent: true; opacity: 0;" render-order="991"></a-plane>
-            <a-plane id="plane-11" src="11.png" position="0.44 0.26 0.02" width="0.93" height="0.58" rotation="0 0 -11.45" material="transparent: true; opacity: 0;" render-order="991"></a-plane>
-
-            <!-- 2, 3, 4 (左劃入) -->
-            <a-plane id="plane-4" data-target-x="-0.33" data-target-y="-0.09" data-target-z="0.05" src="4.png" position="-0.33 -0.09 0.05" width="0.33" height="0.21" rotation="0 0 0.10" material="transparent: true; opacity: 0;" render-order="992"></a-plane>
-            <a-plane id="plane-2" data-target-x="-0.37" data-target-y="-0.22" data-target-z="0.10" src="2.png" position="-0.37 -0.22 0.10" width="0.51" height="0.32" rotation="0 0 -10.70" material="transparent: true; opacity: 0;" render-order="993"></a-plane>
-            <a-plane id="plane-3" data-target-x="-0.31" data-target-y="-0.31" data-target-z="0.15" src="3.png" position="-0.31 -0.31 0.15" width="0.38" height="0.24" rotation="0 0 -11.34" material="transparent: true; opacity: 0;" render-order="995"></a-plane>
-
-            <!-- 5, 6, 9 (右劃入) -->
-            <a-plane id="plane-9" data-target-x="0.37" data-target-y="-0.08" data-target-z="0.05" src="9.png" position="0.37 -0.08 0.05" width="0.22" height="0.14" rotation="0 0 1.17" material="transparent: true; opacity: 0;" render-order="992"></a-plane>
-            <a-plane id="plane-5" data-target-x="0.28" data-target-y="-0.16" data-target-z="0.10" src="5.png" position="0.28 -0.16 0.10" width="0.31" height="0.19" rotation="0 0 0.45" material="transparent: true; opacity: 0;" render-order="993"></a-plane>
-            <a-plane id="plane-6" data-target-x="0.28" data-target-y="-0.22" data-target-z="0.15" src="6.png" position="0.28 -0.22 0.15" width="0.39" height="0.24" rotation="0 0 2.36" material="transparent: true; opacity: 0;" render-order="995"></a-plane>
-
-            <!-- 1 (主圖放大彈跳) -->
-            <a-plane id="plane-1" src="1.png" position="0.1 -0.15 0.25" width="1.2" height="0.8" material="transparent: true; opacity: 0;" render-order="999"></a-plane>
-
-            <!-- 13 (左飛入), 14 (右飛入) -->
-            <a-plane id="plane-13" data-target-x="0.37" data-target-y="0.59" data-target-z="0.20" src="13.png" position="0.37 0.59 0.20" width="0.31" height="0.19" rotation="0 0 9.84" material="transparent: true; opacity: 0;" render-order="997"></a-plane>
-            <a-plane id="plane-14-1" data-target-x="-0.33" data-target-y="0.42" data-target-z="0.20" src="14.png" position="-0.33 0.42 0.20" width="0.25" height="0.16" rotation="0 0 -11.04" material="transparent: true; opacity: 0;" render-order="997"></a-plane>
-            <a-plane id="plane-14-2" data-target-x="-0.39" data-target-y="0.60" data-target-z="0.22" src="14.png" position="-0.39 0.60 0.22" width="0.27" height="0.17" rotation="0 0 -3.78" material="transparent: true; opacity: 0;" render-order="998"></a-plane>
-
-            <!-- 12 (自下而上劃入) -->
-            <a-plane id="plane-12" data-target-x="0" data-target-y="-0.58" data-target-z="0.20" src="12.png" position="0 -0.58 0.20" width="1.85" height="1.0" rotation="0 0 0.87" material="transparent: true; opacity: 0;" render-order="997"></a-plane>
-
-        </a-entity>
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
     </a-scene>
 
     <script>
         const targetEntity = document.querySelector('#ar-target');
         const audioOverlay = document.querySelector('#audio-overlay');
-        const arUiOverlay = document.querySelector('#ar-ui-overlay');
+        const stage2D = document.querySelector('#ar-2d-stage');
         const titleEl = document.querySelector('.top-title');
 
         let isParticleActive = false;
@@ -261,21 +258,6 @@
         audioOverlay.addEventListener('click', () => {
             audioOverlay.style.display = 'none';
         });
-
-        // 輔助函式：操作 A-Frame 3D 屬性
-        function setOpacity(selector, val) {
-            document.querySelectorAll(selector).forEach(el => {
-                el.setAttribute('material', 'opacity', val);
-            });
-        }
-
-        function setPosition(el, x, y, z) {
-            el.setAttribute('position', `${x} ${y} ${z}`);
-        }
-
-        function setScale(el, sx, sy, sz) {
-            el.setAttribute('scale', `${sx} ${sy} ${sz}`);
-        }
 
         // 打字機效果
         function playTypewriterEffect() {
@@ -295,136 +277,67 @@
             }, 60);
         }
 
-        // GSAP 時間軸
+        // GSAP 2D 時間軸
         let tl = gsap.timeline({ paused: true });
 
-        function buildTimeline() {
+        function build2DTimeline() {
             tl.kill();
             tl = gsap.timeline({ paused: true });
 
-            // 重置所有物件初始狀態
-            setOpacity('a-plane', 0);
+            // 重置所有圖層狀態
+            gsap.set('.img-layer', { opacity: 0 });
+            gsap.set('#img-2, #img-3, #img-4', { x: '-100vw' });
+            gsap.set('#img-5, #img-6, #img-9', { x: '100vw' });
+            gsap.set('#img-13', { x: '-100vw' });
+            gsap.set('#img-14-1, #img-14-2', { x: '100vw' });
+            gsap.set('#img-12', { y: '100vh' });
+            gsap.set('#img-1', { scale: 0.2 });
 
-            // 1. 7, 10, 11 緩緩浮現
-            tl.to({}, {
-                duration: 1.2,
-                onUpdate: function() {
-                    const p = this.progress();
-                    setOpacity('#plane-7, #plane-10, #plane-11', p);
-                }
-            })
+            // 1. 7, 10, 11 背景浮現
+            tl.to('#img-7, #img-10, #img-11', { duration: 1.2, opacity: 1, ease: 'power1.out' })
 
-            // 2. 2, 3, 4 自左側劃入 (-1.8 -> data-target-x)
-            .to({}, {
-                duration: 0.8,
-                ease: 'power2.out',
-                onStart: () => setOpacity('#plane-2, #plane-3, #plane-4', 1),
-                onUpdate: function() {
-                    const p = this.progress();
-                    ['#plane-2', '#plane-3', '#plane-4'].forEach(id => {
-                        const el = document.querySelector(id);
-                        const tx = parseFloat(el.getAttribute('data-target-x'));
-                        const ty = parseFloat(el.getAttribute('data-target-y'));
-                        const tz = parseFloat(el.getAttribute('data-target-z'));
-                        const currentX = -1.8 + (tx - (-1.8)) * p;
-                        setPosition(el, currentX, ty, tz);
-                    });
-                }
-            }, "-=0.3")
+            // 2. 2, 3, 4 左側劃入
+            .to('#img-2, #img-3, #img-4', { duration: 0.8, x: 0, opacity: 1, ease: 'power2.out', stagger: 0.1 }, "-=0.4")
 
-            // 3. 5, 6, 9 自右側劃入 (1.8 -> data-target-x)
-            .to({}, {
-                duration: 0.8,
-                ease: 'power2.out',
-                onStart: () => setOpacity('#plane-5, #plane-6, #plane-9', 1),
-                onUpdate: function() {
-                    const p = this.progress();
-                    ['#plane-5', '#plane-6', '#plane-9'].forEach(id => {
-                        const el = document.querySelector(id);
-                        const tx = parseFloat(el.getAttribute('data-target-x'));
-                        const ty = parseFloat(el.getAttribute('data-target-y'));
-                        const tz = parseFloat(el.getAttribute('data-target-z'));
-                        const currentX = 1.8 + (tx - 1.8) * p;
-                        setPosition(el, currentX, ty, tz);
-                    });
-                }
-            }, "-=0.4")
+            // 3. 5, 6, 9 右側劃入
+            .to('#img-5, #img-6, #img-9', { duration: 0.8, x: 0, opacity: 1, ease: 'power2.out', stagger: 0.1 }, "-=0.6")
 
-            // 4. 1.png 放大一倍跳到中央，再緩緩縮小到既定位置
-            .to({}, {
-                duration: 0.5,
-                onStart: () => setOpacity('#plane-1', 1),
-                onUpdate: function() {
-                    const p = this.progress();
-                    const s = 1 + p * 1.0; // 1 -> 2 倍
-                    setScale(document.querySelector('#plane-1'), s, s, 1);
-                }
-            })
-            .to({}, {
-                duration: 0.7,
-                ease: 'power2.inOut',
-                onUpdate: function() {
-                    const p = this.progress();
-                    const s = 2 - p * 1.0; // 2 -> 1 倍
-                    setScale(document.querySelector('#plane-1'), s, s, 1);
-                }
-            })
+            // 4. 1 主圖彈跳放大放大再回到標準大小
+            .to('#img-1', { duration: 0.5, opacity: 1, scale: 1.2, ease: 'back.out(1.7)' })
+            .to('#img-1', { duration: 0.4, scale: 1, ease: 'power1.inOut' })
 
-            // 5. 13 (自左), 14 (自右) 飛入
-            .to({}, {
-                duration: 0.6,
-                onStart: () => setOpacity('#plane-13, #plane-14-1, #plane-14-2', 1),
-                onUpdate: function() {
-                    const p = this.progress();
-                    const el13 = document.querySelector('#plane-13');
-                    setPosition(el13, -1.5 + (0.37 - (-1.5)) * p, 0.59, 0.20);
+            // 5. 13 (左飛入), 14 (右飛入)
+            .to('#img-13', { duration: 0.6, x: 0, opacity: 1, ease: 'power2.out' }, "-=0.2")
+            .to('#img-14-1, #img-14-2', { duration: 0.6, x: 0, opacity: 1, ease: 'power2.out', stagger: 0.1 }, "-=0.5")
 
-                    const el14_1 = document.querySelector('#plane-14-1');
-                    setPosition(el14_1, 1.5 + (-0.33 - 1.5) * p, 0.42, 0.20);
-
-                    const el14_2 = document.querySelector('#plane-14-2');
-                    setPosition(el14_2, 1.5 + (-0.39 - 1.5) * p, 0.60, 0.22);
-                }
-            }, "-=0.2")
-
-            // 6. 上方標題打字機
-            .to('.top-title-container', { duration: 0.1, opacity: 1 }, "-=0.1")
+            // 6. 標題打字機
+            .to('.top-title-container', { duration: 0.1, opacity: 1 })
             .add(() => playTypewriterEffect())
 
-            // 7. 12 自下而上劃入 (-2.0 -> -0.58)
-            .to({}, {
-                duration: 0.8,
-                onStart: () => setOpacity('#plane-12', 1),
-                onUpdate: function() {
-                    const p = this.progress();
-                    const el12 = document.querySelector('#plane-12');
-                    const curY = -2.0 + (-0.58 - (-2.0)) * p;
-                    setPosition(el12, 0, curY, 0.20);
-                }
-            }, "+=0.3")
+            // 7. 12 自下而上劃入
+            .to('#img-12', { duration: 0.8, y: 0, opacity: 1, ease: 'power2.out' }, "-=0.2")
 
-            // 8. 符號按鈕出現
+            // 8. 底部按鈕
             .fromTo('.action-btn',
-                { y: 35, opacity: 0, scale: 0.8 },
+                { y: 30, opacity: 0, scale: 0.8 },
                 { duration: 0.6, y: 0, opacity: 1, scale: 1, ease: 'back.out(1.5)', stagger: 0.15 },
                 "-=0.3"
             )
 
-            // 9. 灑下金色粒子
+            // 9. 金色粒子登場
             .add(() => { isParticleActive = true; });
         }
 
         // 識別圖狀態監聽
         targetEntity.addEventListener("targetFound", () => {
-            arUiOverlay.style.display = 'flex';
-            buildTimeline();
+            stage2D.style.display = 'block';
+            build2DTimeline();
             tl.restart();
         });
 
         targetEntity.addEventListener("targetLost", () => {
-            arUiOverlay.style.display = 'none';
+            stage2D.style.display = 'none';
             tl.pause(0);
-            setOpacity('a-plane', 0);
             isParticleActive = false;
             if (typewriterTimer) clearInterval(typewriterTimer);
             titleEl.innerHTML = "";
@@ -433,12 +346,11 @@
         // --- 金色粒子渲染引擎 ---
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
-        const stage = document.getElementById('stage');
 
         let width, height;
         function resizeCanvas() {
-            width = stage.clientWidth;
-            height = stage.clientHeight;
+            width = window.innerWidth;
+            height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
         }
