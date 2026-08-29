@@ -1,276 +1,423 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TIMOR LESTE - MindAR Fixed</title>
-    <!-- 引入 A-Frame 與 MindAR -->
+    <meta charset="UTF-8">
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
         
-        body, html { 
-            width: 100%; 
-            height: 100%; 
-            overflow: hidden; 
-            background: transparent !important; 
-        }
-
-        video {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            z-index: -2 !important;
-        }
-
-        .a-canvas {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            z-index: 1 !important;
-        }
-        
-        /* 2D UI 懸浮層 */
-        .ui-container {
+        /* 音訊點擊覆蓋層 */
+        #audio-overlay {
             position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            pointer-events: none;
-            z-index: 999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            opacity: 0;
-            transition: opacity 0.4s ease-in-out;
+            z-index: 9999;
+            cursor: pointer;
         }
-
-        .ui-container.visible {
-            opacity: 1;
-        }
-
-        .top-title-container {
-            margin-top: 5vh;
-            width: 90%;
+        
+        .overlay-btn {
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             text-align: center;
         }
 
+        /* 識別成功後顯示的 2.html UI 容器 (預設隱藏) */
+        #ar-ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
+            display: none; /* 識別後改為 flex */
+            justify-content: center;
+            align-items: center;
+            pointer-events: none; /* 避免擋住下層事件 */
+        }
+
+        #ar-ui-overlay * {
+            pointer-events: auto; /* 讓內部的按鈕可點擊 */
+        }
+
+        /* 響應式 Viewport 容器 */
+        .responsive-stage {
+            position: relative;
+            width: 100vw;
+            height: 177.78vw; /* 9:16 比例 */
+            max-height: 100vh;
+            max-width: 56.25vh;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* 動態金色粒子 Canvas 層 */
+        .particles-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        .placed-image {
+            pointer-events: none;
+        }
+
+        /* 頂部標題樣式 */
+        .top-title-container {
+            position: absolute;
+            top: 4.5%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            width: 90%;
+            text-align: center;
+            pointer-events: none;
+        }
+
         .top-title {
-            font-family: Impact, "Arial Black", sans-serif;
-            font-size: 8vw;
+            font-family: Impact, "Arial Black", "Trebuchet MS", sans-serif;
+            font-size: 8.2vw;
+            font-weight: 900;
             line-height: 0.95;
+            letter-spacing: 1px;
             text-transform: uppercase;
+            
             background: linear-gradient(180deg, #fff3a1 0%, #f7a034 40%, #c43216 80%, #7a1204 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            
             -webkit-text-stroke: 1px #4a0900;
-            filter: drop-shadow(0px 0px 10px rgba(255, 215, 0, 0.8));
+            animation: titleGlow 2.5s infinite alternate ease-in-out;
         }
 
+        @keyframes titleGlow {
+            0% {
+                filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0px 0px 6px rgba(247, 160, 52, 0.4));
+            }
+            100% {
+                filter: drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.9)) drop-shadow(0px 0px 18px rgba(255, 215, 0, 0.9));
+            }
+        }
+
+        /* 底部按鈕欄容器 */
         .bottom-actions-container {
-            margin-bottom: 4vh;
+            position: absolute;
+            bottom: 3.5%;
+            left: 50%;
+            transform: translateX(-50%);
             width: 92%;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            pointer-events: auto;
+            z-index: 20;
         }
 
+        /* 按鈕結構 */
         .action-btn {
             position: relative;
             width: 31%;
             background: linear-gradient(180deg, #fffef2 0%, #f7e6c4 50%, #e6ca91 100%);
             border: 1.5px solid #d4af37;
+            box-shadow: 0 0 0 1px #8c681e, 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 1px 2px #ffffff;
             border-radius: 12px;
             padding: 22px 4px 10px 4px;
             text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 1px 2px #fff;
             cursor: pointer;
+            overflow: visible;
+            transition: transform 0.15s ease;
+            animation: buttonPulse 3s infinite alternate ease-in-out;
+        }
+
+        .shimmer-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .shimmer-layer::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -150%;
+            width: 100%;
+            height: 200%;
+            background: linear-gradient(60deg, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%);
+            transform: rotate(25deg);
+            animation: shimmerSweep 4s infinite ease-in-out;
+        }
+
+        @keyframes shimmerSweep {
+            0% { left: -150%; }
+            30% { left: 150%; }
+            100% { left: 150%; }
+        }
+
+        @keyframes buttonPulse {
+            0% {
+                box-shadow: 0 0 0 1px #8c681e, 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 1px 2px #ffffff, 0 0 4px rgba(212, 175, 55, 0.3);
+            }
+            100% {
+                box-shadow: 0 0 0 1px #d4af37, 0 4px 12px rgba(0, 0, 0, 0.8), inset 0 1px 4px #ffffff, 0 0 12px rgba(255, 215, 0, 0.8);
+            }
+        }
+
+        .action-btn:active {
+            transform: scale(0.96);
         }
 
         .btn-badge {
             position: absolute;
-            top: -16px; left: 50%;
+            top: -16px;
+            left: 50%;
             transform: translateX(-50%);
-            width: 32px; height: 32px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background: radial-gradient(circle, #1a4d2e 0%, #0d2b19 100%);
             border: 2px solid #f3d085;
-            display: flex; justify-content: center; align-items: center;
-        }
-
-        .btn-badge svg { width: 16px; height: 16px; fill: #f5e2b3; }
-        .btn-text { font-family: Georgia, serif; font-size: 2.5vw; font-weight: bold; color: #3b1d06; }
-
-        .scan-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: 1000;
+            box-shadow: 0 0 0 1px #6e4e13, 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(243, 208, 133, 0.6);
             display: flex;
             justify-content: center;
             align-items: center;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
+            z-index: 5;
         }
-        .scan-overlay.hidden { opacity: 0; }
-        .scan-box {
-            width: 60vw; height: 60vw;
-            border: 2px dashed rgba(255, 215, 0, 0.7);
-            border-radius: 20px;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3) inset;
-            animation: scanPulse 2s infinite alternate;
+
+        .btn-badge svg {
+            width: 16px;
+            height: 16px;
+            fill: #f5e2b3;
+            filter: drop-shadow(0 0 2px rgba(245, 226, 179, 0.8));
         }
-        @keyframes scanPulse {
-            0% { border-color: rgba(255, 215, 0, 0.4); transform: scale(1); }
-            100% { border-color: rgba(255, 215, 0, 1); transform: scale(1.02); }
+
+        .btn-text {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 2.5vw;
+            font-weight: bold;
+            color: #3b1d06;
+            white-space: nowrap;
+            letter-spacing: -0.2px;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+            position: relative;
+            z-index: 2;
+        }
+
+        @media (min-aspect-ratio: 9/16) {
+            .top-title { font-size: 4.6vh; }
+            .btn-text { font-size: 1.4vh; }
+            .action-btn { padding: 24px 4px 12px 4px; }
+            .btn-badge { top: -18px; width: 36px; height: 36px; }
+            .btn-badge svg { width: 18px; height: 18px; }
         }
     </style>
-
-    <script>
-        // 安全的長寬比自動校正組件（絕不卡死）
-        AFRAME.registerComponent('keep-ratio', {
-            schema: { targetWidth: { type: 'number', default: 1.0 } },
-            init: function () {
-                const el = this.el;
-                const src = el.getAttribute('src');
-                if (!src) return;
-
-                // 獲取圖片真實路徑或 selector 中的 src
-                let imgUrl = src;
-                if (src.startsWith('#')) {
-                    const imgEl = document.querySelector(src);
-                    if (imgEl) imgUrl = imgEl.getAttribute('src');
-                }
-
-                // 創建獨立圖片物件靜默加載長寬
-                const tempImg = new Image();
-                tempImg.src = imgUrl;
-                tempImg.onload = () => {
-                    const ratio = tempImg.naturalHeight / tempImg.naturalWidth;
-                    const w = this.data.targetWidth;
-                    const h = w * ratio;
-                    // 精確設置比例，零拉伸
-                    el.setAttribute('scale', `${w} ${h} 1`);
-                };
-            }
-        });
-    </script>
 </head>
 <body>
 
-    <div class="scan-overlay" id="scanOverlay">
-        <div class="scan-box"></div>
+    <!-- 點擊進入 AR -->
+    <div id="audio-overlay">
+        <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
     </div>
 
-    <div class="ui-container" id="uiContainer">
-        <div class="top-title-container">
-            <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
-        </div>
-        <div class="bottom-actions-container">
-            <div class="action-btn" onclick="alert('Flavor Profile clicked!')">
-                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
-                <div class="btn-text">Flavor Profile</div>
+    <!-- 識別成功後顯示的 2.html UI 內容 -->
+    <div id="ar-ui-overlay">
+        <div class="responsive-stage" id="stage">
+            <!-- 粒子 Canvas -->
+            <canvas id="particleCanvas" class="particles-canvas"></canvas>
+
+            <!-- 頂部藝術標題 -->
+            <div class="top-title-container">
+                <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
             </div>
-            <div class="action-btn" onclick="alert('Origin Story clicked!')">
-                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg></div>
-                <div class="btn-text">Origin Story</div>
-            </div>
-            <div class="action-btn" onclick="alert('Exclusive Gift clicked!')">
-                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 59 16.17 3.83 12 12 12 3 7 3 2 3 2 5.03 2 7.5 3.5 10 2 12 2 12 2s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg></div>
-                <div class="btn-text">Exclusive Gift</div>
+
+            <!-- 圖層素材 (來自 2.html) -->
+            <img class="placed-image" src="7.png" style="position: absolute; left: 51.0351%; top: 57.8671%; width: 103.4814%; z-index: 0; transform: translate(-50%, -50%) rotate(0.77deg); transform-origin: center center;" />
+            <img class="placed-image" src="10.png" style="position: absolute; left: 16.6111%; top: 47.0888%; width: 51.9053%; z-index: 0; transform: translate(-50%, -50%) rotate(2.55deg); transform-origin: center center;" />
+            <img class="placed-image" src="11.png" style="position: absolute; left: 93.9530%; top: 36.6785%; width: 92.9519%; z-index: 0; transform: translate(-50%, -50%) rotate(-11.45deg); transform-origin: center center;" />
+            <img class="placed-image" src="4.png" style="position: absolute; left: 16.6111%; top: 58.7078%; width: 32.9980%; z-index: 2; transform: translate(-50%, -50%) rotate(0.10deg); transform-origin: center center;" />
+            <img class="placed-image" src="9.png" style="position: absolute; left: 87.4311%; top: 57.8671%; width: 21.5789%; z-index: 2; transform: translate(-50%, -50%) rotate(1.17deg); transform-origin: center center;" />
+            <img class="placed-image" src="2.png" style="position: absolute; left: 13.1054%; top: 66.5387%; width: 50.7775%; z-index: 4; transform: translate(-50%, -50%) rotate(-10.70deg); transform-origin: center center;" />
+            <img class="placed-image" src="5.png" style="position: absolute; left: 78.4764%; top: 63.2211%; width: 31.1608%; z-index: 5; transform: translate(-50%, -50%) rotate(0.45deg); transform-origin: center center;" />
+            <img class="placed-image" src="3.png" style="position: absolute; left: 18.5396%; top: 73.1282%; width: 37.7037%; z-index: 6; transform: translate(-50%, -50%) rotate(-11.34deg); transform-origin: center center;" />
+            <img class="placed-image" src="6.png" style="position: absolute; left: 78.4764%; top: 68.0202%; width: 39.0327%; z-index: 6; transform: translate(-50%, -50%) rotate(2.36deg); transform-origin: center center;" />
+            <img class="placed-image" src="1.png" style="position: absolute; left: 39.1315%; top: 67.4142%; width: 64.2193%; z-index: 8; transform: translate(-50%, -50%) rotate(0.82deg); transform-origin: center center;" />
+            <img class="placed-image" src="13.png" style="position: absolute; left: 87.4311%; top: 14.9671%; width: 30.7334%; z-index: 8; transform: translate(-50%, -50%) rotate(9.84deg); transform-origin: center center;" />
+            <img class="placed-image" src="14.png" style="position: absolute; left: 16.6111%; top: 25.5930%; width: 24.9709%; z-index: 8; transform: translate(-50%, -50%) rotate(-11.04deg); transform-origin: center center;" />
+            <img class="placed-image" src="14.png" style="position: absolute; left: 11.1558%; top: 14.3079%; width: 27.3993%; z-index: 8; transform: translate(-50%, -50%) rotate(-3.78deg); transform-origin: center center;" />
+            <img class="placed-image" src="12.png" style="position: absolute; left: 47.8179%; top: 81.8301%; width: 93.3333%; z-index: 8; transform: translate(-50%, -50%) rotate(0.87deg); transform-origin: center center;" />
+
+            <!-- 底部交互按鈕 -->
+            <div class="bottom-actions-container">
+                <div class="action-btn">
+                    <div class="shimmer-layer"></div>
+                    <div class="btn-badge">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                    </div>
+                    <div class="btn-text">Flavor Profile</div>
+                </div>
+                
+                <div class="action-btn">
+                    <div class="shimmer-layer"></div>
+                    <div class="btn-badge">
+                        <svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg>
+                    </div>
+                    <div class="btn-text">Origin Story</div>
+                </div>
+                
+                <div class="action-btn">
+                    <div class="shimmer-layer"></div>
+                    <div class="btn-badge">
+                        <svg viewBox="0 0 24 24"><path d="M17 8C8 10 59 16.17 3.83 12 12 12 3 7 3 2 3 2 5.03 2 7.5 3.5 10 2 12 2 12 2s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg>
+                    </div>
+                    <div class="btn-text">Exclusive Gift</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- MindAR Scene -->
-    <a-scene id="arScene" 
-             mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF: 0.0001; filterBeta: 0.001;" 
-             embedded
+    <!-- MindAR 場景（完全移除原影片 <a-assets> 與 <a-video>） -->
+    <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
-             renderer="colorManagement: true; transparent: true; alpha: true;" 
+             renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
-        
-        <a-assets>
-            <img id="img1" src="1.png">
-            <img id="img2" src="2.png">
-            <img id="img3" src="3.png">
-            <img id="img4" src="4.png">
-            <img id="img5" src="5.png">
-            <img id="img6" src="6.png">
-            <img id="img7" src="7.png">
-            <img id="img9" src="9.png">
-            <img id="img10" src="10.png">
-            <img id="img11" src="11.png">
-            <img id="img12" src="12.png">
-            <img id="img13" src="13.png">
-            <img id="img14" src="14.png">
-        </a-assets>
-
+      
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <!-- 識別目標 -->
-        <a-entity id="arTarget" mindar-image-target="targetIndex: 0">
-            
-            <!-- 使用 keep-ratio="targetWidth: 數值" 自動適應原圖比例 -->
-            
-            <!-- 【1. 背景底圖 - Z: 0.01】 -->
-            <a-image src="#img7" keep-ratio="targetWidth: 1.1" position="0 -0.05 0.01" rotation="0 0 0.77"></a-image>
-
-            <!-- 【2. 遠景樹木 (左右拉開) - Z: 0.03】 -->
-            <a-image src="#img10" keep-ratio="targetWidth: 0.4" position="-0.48 0.18 0.03" rotation="0 0 2.55"></a-image>
-            <a-image src="#img11" keep-ratio="targetWidth: 0.58" position="0.52 0.28 0.03" rotation="0 0 -11.45"></a-image>
-
-            <!-- 【3. 中景山丘/植被 - Z: 0.06】 -->
-            <a-image src="#img4" keep-ratio="targetWidth: 0.3" position="-0.42 -0.15 0.06" rotation="0 0 0.10"></a-image>
-            <a-image src="#img9" keep-ratio="targetWidth: 0.22" position="0.45 -0.12 0.06" rotation="0 0 1.17"></a-image>
-            <a-image src="#img2" keep-ratio="targetWidth: 0.45" position="-0.40 -0.32 0.08" rotation="0 0 -10.70"></a-image>
-            <a-image src="#img5" keep-ratio="targetWidth: 0.3" position="0.38 -0.25 0.08" rotation="0 0 0.45"></a-image>
-
-            <!-- 【4. 前景點綴與 Banner - Z: 0.11 ~ 0.14】 -->
-            <a-image src="#img3" keep-ratio="targetWidth: 0.35" position="-0.38 -0.48 0.11" rotation="0 0 -11.34"></a-image>
-            <a-image src="#img6" keep-ratio="targetWidth: 0.38" position="0.38 -0.42 0.11" rotation="0 0 2.36"></a-image>
-            <a-image src="#img12" keep-ratio="targetWidth: 0.82" position="0 -0.58 0.13" rotation="0 0 0.87"></a-image>
-
-            <!-- 【5. 核心貓鼬 - Z: 0.16】 -->
-            <a-image src="#img1" keep-ratio="targetWidth: 0.55" position="0 -0.28 0.16" rotation="0 0 0.82"
-                     animation="property: position; to: 0 -0.26 0.17; dir: alternate; dur: 3000; loop: true; easing: easeInOutSine"></a-image>
-
-            <!-- 【6. 空中飛鳥 - Z: 0.20】 -->
-            <a-image src="#img13" keep-ratio="targetWidth: 0.28" position="0.48 0.55 0.20" rotation="0 0 9.84"
-                     animation="property: position; to: 0.50 0.58 0.22; dir: alternate; dur: 2500; loop: true; easing: easeInOutQuad"></a-image>
-            <a-image src="#img14" keep-ratio="targetWidth: 0.24" position="-0.42 0.45 0.20" rotation="0 0 -11.04"
-                     animation="property: position; to: -0.40 0.48 0.22; dir: alternate; dur: 2800; loop: true; easing: easeInOutQuad"></a-image>
-            <a-image src="#img14" keep-ratio="targetWidth: 0.26" position="-0.52 0.65 0.20" rotation="0 0 -3.78"
-                     animation="property: position; to: -0.50 0.67 0.22; dir: alternate; dur: 3200; loop: true; easing: easeInOutQuad"></a-image>
-
-        </a-entity>
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
     </a-scene>
 
     <script>
-        const arScene = document.getElementById("arScene");
-        const uiContainer = document.getElementById("uiContainer");
-        const scanOverlay = document.getElementById("scanOverlay");
+        const targetEntity = document.querySelector('#ar-target');
+        const audioOverlay = document.querySelector('#audio-overlay');
+        const arUiOverlay = document.querySelector('#ar-ui-overlay');
 
-        arScene.addEventListener("arReady", () => {
-            console.log("🟢 MindAR 初始化完成！");
-            const arTarget = document.getElementById("arTarget");
+        function unlockAudio() {
+            audioOverlay.style.display = 'none';
+        }
+        audioOverlay.addEventListener('click', unlockAudio);
 
-            arTarget.addEventListener("targetFound", () => {
-                uiContainer.classList.add("visible");
-                scanOverlay.classList.add("hidden");
-            });
-
-            arTarget.addEventListener("targetLost", () => {
-                uiContainer.classList.remove("visible");
-                scanOverlay.classList.remove("hidden");
-            });
+        // --- 識別邏輯控制 ---
+        targetEntity.addEventListener("targetFound", event => {
+            console.log("🎯 識別成功！顯示 2.html 內容");
+            arUiOverlay.style.display = 'flex';
         });
+
+        targetEntity.addEventListener("targetLost", event => {
+            console.log("❌ 失去識別標籤，隱藏UI");
+            arUiOverlay.style.display = 'none';
+        });
+
+        // --- 金色粒子與星芒 Engine ---
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        const stage = document.getElementById('stage');
+
+        let width, height;
+        function resizeCanvas() {
+            width = stage.clientWidth;
+            height = stage.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = height + Math.random() * 20;
+                this.size = Math.random() * 2.5 + 0.5;
+                this.speedY = Math.random() * 1.2 + 0.3;
+                this.speedX = (Math.random() - 0.5) * 0.4;
+                this.opacity = Math.random() * 0.7 + 0.3;
+                this.pulseSpeed = Math.random() * 0.02 + 0.005;
+                this.isSparkle = Math.random() < 0.25;
+            }
+
+            update() {
+                this.y -= this.speedY;
+                this.x += this.speedX;
+                this.opacity += Math.sin(Date.now() * this.pulseSpeed) * 0.01;
+
+                if (this.y < -10 || this.opacity <= 0) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, Math.min(1, this.opacity));
+
+                if (this.isSparkle) {
+                    ctx.strokeStyle = '#fff5aa';
+                    ctx.fillStyle = '#ffd700';
+                    ctx.lineWidth = 0.8;
+                    
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(this.x - this.size * 3, this.y);
+                    ctx.lineTo(this.x + this.size * 3, this.y);
+                    ctx.moveTo(this.x, this.y - this.size * 3);
+                    ctx.lineTo(this.x, this.y + this.size * 3);
+                    ctx.stroke();
+                } else {
+                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+                    gradient.addColorStop(0, '#ffffff');
+                    gradient.addColorStop(0.4, '#ffd700');
+                    gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        const particles = Array.from({ length: 45 }, () => new Particle());
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
     </script>
 </body>
 </html>
