@@ -9,14 +9,18 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body, html { 
-            width: 100%; 
-            height: 100%; 
+            width: 100vw; 
+            height: 100vh; 
+            height: 100dvh;
             overflow: hidden; 
             background: transparent !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
         }
 
+        /* 強制 Canvas 與 3D Scene 佔滿全屏 */
         .a-canvas {
+            width: 100% !important;
+            height: 100% !important;
             background-color: transparent !important;
         }
 
@@ -66,12 +70,11 @@
             pointer-events: auto;
         }
 
-        /* 響應式 Viewport 容器 */
+        /* 全屏 Viewport 容器 */
         .responsive-stage {
             position: relative;
             width: 100vw;
             height: 100dvh;
-            max-width: 500px;
             overflow: hidden;
             pointer-events: none;
             background: transparent;
@@ -91,7 +94,7 @@
         /* 頂部藝術標題 */
         .top-title-container {
             position: absolute;
-            top: 3.5%;
+            top: 4%;
             left: 50%;
             transform: translateX(-50%);
             z-index: 20;
@@ -102,7 +105,7 @@
 
         .top-title {
             font-family: Impact, "Arial Black", "Trebuchet MS", sans-serif;
-            font-size: 7.5vw;
+            font-size: 8vw;
             font-weight: 900;
             line-height: 0.95;
             letter-spacing: 1px;
@@ -122,10 +125,11 @@
         /* 底部按鈕欄容器 */
         .bottom-actions-container {
             position: absolute;
-            bottom: calc(3.5% + env(safe-area-inset-bottom, 0px));
+            bottom: calc(4% + env(safe-area-inset-bottom, 0px));
             left: 50%;
             transform: translateX(-50%);
             width: 92%;
+            max-width: 500px;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
@@ -169,11 +173,11 @@
         }
 
         .btn-badge svg { width: 14px; height: 14px; fill: #f5e2b3; }
-        .btn-text { font-size: 2.3vw; font-weight: bold; color: #3b1d06; white-space: nowrap; }
+        .btn-text { font-size: 2.5vw; font-weight: bold; color: #3b1d06; white-space: nowrap; }
 
         @media (min-width: 500px) {
-            .top-title { font-size: 38px; }
-            .btn-text { font-size: 12px; }
+            .top-title { font-size: 42px; }
+            .btn-text { font-size: 13px; }
             .action-btn { padding: 22px 4px 10px 4px; }
             .btn-badge { top: -16px; width: 32px; height: 32px; }
             .btn-badge svg { width: 16px; height: 16px; }
@@ -187,7 +191,7 @@
         <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
     </div>
 
-    <!-- 全屏 2D UI 覆蓋層（標題、按鈕、粒子） -->
+    <!-- 全屏 2D UI 覆蓋層 -->
     <div id="ar-ui-overlay">
         <div class="responsive-stage" id="stage">
             <canvas id="particleCanvas" class="particles-canvas"></canvas>
@@ -198,7 +202,7 @@
 
             <div class="bottom-actions-container">
                 <div class="action-btn">
-                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg></div>
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
                     <div class="btn-text">Flavor Profile</div>
                 </div>
                 <div class="action-btn">
@@ -213,7 +217,7 @@
         </div>
     </div>
 
-    <!-- MindAR 3D 場景 -->
+    <!-- MindAR 3D 場景：開啟全屏適應配置 -->
     <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
              renderer="colorManagement: true, transparent: true, alpha: true" 
@@ -222,8 +226,8 @@
       
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <!-- 3D 識別追蹤實體：無任何 scale 縮放（比例均為原始大小 1 1 1） -->
-        <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+        <!-- 3D 識別追蹤實體：整體放大 2.2 倍（scale="2.2 2.2 2.2"），鋪滿手機螢幕 -->
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0" scale="2.2 2.2 2.2">
             
             <!-- 5. 背景層 (7, 10, 11) -->
             <a-plane src="7.png" position="0.01 -0.08 0.01" width="1.03" height="0.65" rotation="0 0 0.77" material="transparent: true; alphaTest: 0.1;" render-order="990"></a-plane>
