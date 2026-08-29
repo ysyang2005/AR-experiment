@@ -1,15 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta charset="UTF-8">
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
-        
+        body, html { 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            background: transparent !important; /* 透明背景，確保攝像頭畫面持續顯示 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+        }
+
+        /* 讓 MindAR 的 3D Canvas 保持底層透明 */
+        .a-canvas {
+            background-color: transparent !important;
+        }
+
         /* 音訊點擊覆蓋層 */
         #audio-overlay {
             position: fixed;
@@ -17,7 +28,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.6);
             color: white;
             display: flex;
             justify-content: center;
@@ -43,27 +54,28 @@
             top: 0;
             left: 0;
             width: 100vw;
-            height: 100vh;
+            height: 100dvh; /* 使用動態 Viewport 高度適應手機瀏覽器欄 */
             z-index: 1000;
             display: none; /* 識別後改為 flex */
             justify-content: center;
             align-items: center;
-            pointer-events: none; /* 避免擋住下層事件 */
+            pointer-events: none;
+            background: transparent;
         }
 
         #ar-ui-overlay * {
-            pointer-events: auto; /* 讓內部的按鈕可點擊 */
+            pointer-events: auto;
         }
 
-        /* 響應式 Viewport 容器 */
+        /* 響應式 Viewport 容器 - 優化適應比例 */
         .responsive-stage {
             position: relative;
             width: 100vw;
-            height: 177.78vw; /* 9:16 比例 */
-            max-height: 100vh;
-            max-width: 56.25vh;
+            height: 100dvh;
+            max-width: 500px;
             overflow: hidden;
             pointer-events: none;
+            background: transparent;
         }
 
         /* 動態金色粒子 Canvas 層 */
@@ -81,10 +93,10 @@
             pointer-events: none;
         }
 
-        /* 頂部標題樣式 */
+        /* 頂部藝術標題 */
         .top-title-container {
             position: absolute;
-            top: 4.5%;
+            top: 3.5%;
             left: 50%;
             transform: translateX(-50%);
             z-index: 20;
@@ -95,7 +107,7 @@
 
         .top-title {
             font-family: Impact, "Arial Black", "Trebuchet MS", sans-serif;
-            font-size: 8.2vw;
+            font-size: 7.5vw;
             font-weight: 900;
             line-height: 0.95;
             letter-spacing: 1px;
@@ -118,17 +130,17 @@
             }
         }
 
-        /* 底部按鈕欄容器 */
+        /* 底部按鈕欄容器 - 上移並預留安全邊距 */
         .bottom-actions-container {
             position: absolute;
-            bottom: 3.5%;
+            bottom: calc(3.5% + env(safe-area-inset-bottom, 0px));
             left: 50%;
             transform: translateX(-50%);
             width: 92%;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            z-index: 20;
+            z-index: 25;
         }
 
         /* 按鈕結構 */
@@ -139,7 +151,7 @@
             border: 1.5px solid #d4af37;
             box-shadow: 0 0 0 1px #8c681e, 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 1px 2px #ffffff;
             border-radius: 12px;
-            padding: 22px 4px 10px 4px;
+            padding: 20px 2px 8px 2px;
             text-align: center;
             cursor: pointer;
             overflow: visible;
@@ -192,11 +204,11 @@
 
         .btn-badge {
             position: absolute;
-            top: -16px;
+            top: -14px;
             left: 50%;
             transform: translateX(-50%);
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: radial-gradient(circle, #1a4d2e 0%, #0d2b19 100%);
             border: 2px solid #f3d085;
@@ -208,15 +220,15 @@
         }
 
         .btn-badge svg {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             fill: #f5e2b3;
             filter: drop-shadow(0 0 2px rgba(245, 226, 179, 0.8));
         }
 
         .btn-text {
             font-family: Georgia, "Times New Roman", serif;
-            font-size: 2.5vw;
+            font-size: 2.3vw;
             font-weight: bold;
             color: #3b1d06;
             white-space: nowrap;
@@ -226,12 +238,12 @@
             z-index: 2;
         }
 
-        @media (min-aspect-ratio: 9/16) {
-            .top-title { font-size: 4.6vh; }
-            .btn-text { font-size: 1.4vh; }
-            .action-btn { padding: 24px 4px 12px 4px; }
-            .btn-badge { top: -18px; width: 36px; height: 36px; }
-            .btn-badge svg { width: 18px; height: 18px; }
+        @media (min-width: 500px) {
+            .top-title { font-size: 38px; }
+            .btn-text { font-size: 12px; }
+            .action-btn { padding: 22px 4px 10px 4px; }
+            .btn-badge { top: -16px; width: 32px; height: 32px; }
+            .btn-badge svg { width: 16px; height: 16px; }
         }
     </style>
 </head>
@@ -242,7 +254,7 @@
         <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
     </div>
 
-    <!-- 識別成功後顯示的 2.html UI 內容 -->
+    <!-- 識別成功後顯示的 UI 內容 -->
     <div id="ar-ui-overlay">
         <div class="responsive-stage" id="stage">
             <!-- 粒子 Canvas -->
@@ -253,21 +265,21 @@
                 <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
             </div>
 
-            <!-- 圖層素材 (來自 2.html) -->
-            <img class="placed-image" src="7.png" style="position: absolute; left: 51.0351%; top: 57.8671%; width: 103.4814%; z-index: 0; transform: translate(-50%, -50%) rotate(0.77deg); transform-origin: center center;" />
-            <img class="placed-image" src="10.png" style="position: absolute; left: 16.6111%; top: 47.0888%; width: 51.9053%; z-index: 0; transform: translate(-50%, -50%) rotate(2.55deg); transform-origin: center center;" />
-            <img class="placed-image" src="11.png" style="position: absolute; left: 93.9530%; top: 36.6785%; width: 92.9519%; z-index: 0; transform: translate(-50%, -50%) rotate(-11.45deg); transform-origin: center center;" />
-            <img class="placed-image" src="4.png" style="position: absolute; left: 16.6111%; top: 58.7078%; width: 32.9980%; z-index: 2; transform: translate(-50%, -50%) rotate(0.10deg); transform-origin: center center;" />
-            <img class="placed-image" src="9.png" style="position: absolute; left: 87.4311%; top: 57.8671%; width: 21.5789%; z-index: 2; transform: translate(-50%, -50%) rotate(1.17deg); transform-origin: center center;" />
-            <img class="placed-image" src="2.png" style="position: absolute; left: 13.1054%; top: 66.5387%; width: 50.7775%; z-index: 4; transform: translate(-50%, -50%) rotate(-10.70deg); transform-origin: center center;" />
-            <img class="placed-image" src="5.png" style="position: absolute; left: 78.4764%; top: 63.2211%; width: 31.1608%; z-index: 5; transform: translate(-50%, -50%) rotate(0.45deg); transform-origin: center center;" />
-            <img class="placed-image" src="3.png" style="position: absolute; left: 18.5396%; top: 73.1282%; width: 37.7037%; z-index: 6; transform: translate(-50%, -50%) rotate(-11.34deg); transform-origin: center center;" />
-            <img class="placed-image" src="6.png" style="position: absolute; left: 78.4764%; top: 68.0202%; width: 39.0327%; z-index: 6; transform: translate(-50%, -50%) rotate(2.36deg); transform-origin: center center;" />
-            <img class="placed-image" src="1.png" style="position: absolute; left: 39.1315%; top: 67.4142%; width: 64.2193%; z-index: 8; transform: translate(-50%, -50%) rotate(0.82deg); transform-origin: center center;" />
-            <img class="placed-image" src="13.png" style="position: absolute; left: 87.4311%; top: 14.9671%; width: 30.7334%; z-index: 8; transform: translate(-50%, -50%) rotate(9.84deg); transform-origin: center center;" />
-            <img class="placed-image" src="14.png" style="position: absolute; left: 16.6111%; top: 25.5930%; width: 24.9709%; z-index: 8; transform: translate(-50%, -50%) rotate(-11.04deg); transform-origin: center center;" />
-            <img class="placed-image" src="14.png" style="position: absolute; left: 11.1558%; top: 14.3079%; width: 27.3993%; z-index: 8; transform: translate(-50%, -50%) rotate(-3.78deg); transform-origin: center center;" />
-            <img class="placed-image" src="12.png" style="position: absolute; left: 47.8179%; top: 81.8301%; width: 93.3333%; z-index: 8; transform: translate(-50%, -50%) rotate(0.87deg); transform-origin: center center;" />
+            <!-- 圖層素材（垂直位置整體向上精調 3-5%） -->
+            <img class="placed-image" src="7.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 103.4814%; z-index: 0; transform: translate(-50%, -50%) rotate(0.77deg);" />
+            <img class="placed-image" src="10.png" style="position: absolute; left: 16.6111%; top: 44.0888%; width: 51.9053%; z-index: 0; transform: translate(-50%, -50%) rotate(2.55deg);" />
+            <img class="placed-image" src="11.png" style="position: absolute; left: 93.9530%; top: 33.6785%; width: 92.9519%; z-index: 0; transform: translate(-50%, -50%) rotate(-11.45deg);" />
+            <img class="placed-image" src="4.png" style="position: absolute; left: 16.6111%; top: 55.7078%; width: 32.9980%; z-index: 2; transform: translate(-50%, -50%) rotate(0.10deg);" />
+            <img class="placed-image" src="9.png" style="position: absolute; left: 87.4311%; top: 54.8671%; width: 21.5789%; z-index: 2; transform: translate(-50%, -50%) rotate(1.17deg);" />
+            <img class="placed-image" src="2.png" style="position: absolute; left: 13.1054%; top: 63.5387%; width: 50.7775%; z-index: 4; transform: translate(-50%, -50%) rotate(-10.70deg);" />
+            <img class="placed-image" src="5.png" style="position: absolute; left: 78.4764%; top: 60.2211%; width: 31.1608%; z-index: 5; transform: translate(-50%, -50%) rotate(0.45deg);" />
+            <img class="placed-image" src="3.png" style="position: absolute; left: 18.5396%; top: 69.1282%; width: 37.7037%; z-index: 6; transform: translate(-50%, -50%) rotate(-11.34deg);" />
+            <img class="placed-image" src="6.png" style="position: absolute; left: 78.4764%; top: 64.0202%; width: 39.0327%; z-index: 6; transform: translate(-50%, -50%) rotate(2.36deg);" />
+            <img class="placed-image" src="1.png" style="position: absolute; left: 39.1315%; top: 63.4142%; width: 64.2193%; z-index: 8; transform: translate(-50%, -50%) rotate(0.82deg);" />
+            <img class="placed-image" src="13.png" style="position: absolute; left: 87.4311%; top: 12.9671%; width: 30.7334%; z-index: 8; transform: translate(-50%, -50%) rotate(9.84deg);" />
+            <img class="placed-image" src="14.png" style="position: absolute; left: 16.6111%; top: 23.5930%; width: 24.9709%; z-index: 8; transform: translate(-50%, -50%) rotate(-11.04deg);" />
+            <img class="placed-image" src="14.png" style="position: absolute; left: 11.1558%; top: 12.3079%; width: 27.3993%; z-index: 8; transform: translate(-50%, -50%) rotate(-3.78deg);" />
+            <img class="placed-image" src="12.png" style="position: absolute; left: 47.8179%; top: 76.8301%; width: 93.3333%; z-index: 8; transform: translate(-50%, -50%) rotate(0.87deg);" />
 
             <!-- 底部交互按鈕 -->
             <div class="bottom-actions-container">
@@ -298,10 +310,10 @@
         </div>
     </div>
 
-    <!-- MindAR 場景（完全移除原影片 <a-assets> 與 <a-video>） -->
+    <!-- MindAR 場景 -->
     <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
-             renderer="colorManagement: true, physicallyCorrectLights" 
+             renderer="colorManagement: true, transparent: true, alpha: true" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
       
@@ -322,7 +334,7 @@
 
         // --- 識別邏輯控制 ---
         targetEntity.addEventListener("targetFound", event => {
-            console.log("🎯 識別成功！顯示 2.html 內容");
+            console.log("🎯 識別成功！顯示 UI");
             arUiOverlay.style.display = 'flex';
         });
 
