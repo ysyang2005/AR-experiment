@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-html-shader@0.3.2/dist/aframe-html-shader.min.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -48,19 +47,111 @@
             text-align: center;
         }
 
-        /* 屏幕固定 HUD 底部按鈕 - 確保點擊交互完美 */
-        #hud-buttons {
+        /* 識別成功後顯示的 2D UI 容器 (受距離縮放控制) */
+        #ar-ui-overlay {
             position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            background: transparent;
+            transform-origin: center center;
+            /* 讓縮放平滑過渡 */
+            transition: transform 0.05s ease-out;
+        }
+
+        #ar-ui-overlay * {
+            pointer-events: auto;
+        }
+
+        /* 響應式 Viewport 容器 */
+        .responsive-stage {
+            position: relative;
+            width: 100vw;
+            height: 100dvh;
+            max-width: 500px;
+            overflow: hidden;
+            pointer-events: none;
+            background: transparent;
+        }
+
+        /* 動態金色粒子 Canvas 層 */
+        .particles-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        /* 每個 PNG 圖層專屬金色光暈 */
+        .placed-image {
+            pointer-events: none;
+            filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.6)) 
+                    drop-shadow(0px 0px 18px rgba(212, 175, 55, 0.4));
+            animation: pngGoldenGlow 3s infinite alternate ease-in-out;
+        }
+
+        @keyframes pngGoldenGlow {
+            0% {
+                filter: drop-shadow(0px 0px 5px rgba(255, 215, 0, 0.5)) 
+                        drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.3));
+            }
+            100% {
+                filter: drop-shadow(0px 0px 12px rgba(255, 230, 120, 0.8)) 
+                        drop-shadow(0px 0px 25px rgba(255, 191, 0, 0.6));
+            }
+        }
+
+        /* 頂部藝術標題 */
+        .top-title-container {
+            position: absolute;
+            top: 3.5%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            width: 90%;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .top-title {
+            font-family: Impact, "Arial Black", "Trebuchet MS", sans-serif;
+            font-size: 7.5vw;
+            font-weight: 900;
+            line-height: 0.95;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: linear-gradient(180deg, #fff3a1 0%, #f7a034 40%, #c43216 80%, #7a1204 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            -webkit-text-stroke: 1px #4a0900;
+            animation: titleGlow 2.5s infinite alternate ease-in-out;
+        }
+
+        @keyframes titleGlow {
+            0% { filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0px 0px 8px rgba(247, 160, 52, 0.5)); }
+            100% { filter: drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.9)) drop-shadow(0px 0px 22px rgba(255, 215, 0, 0.95)); }
+        }
+
+        /* 底部按鈕欄容器 */
+        .bottom-actions-container {
+            position: absolute;
             bottom: calc(3.5% + env(safe-area-inset-bottom, 0px));
             left: 50%;
             transform: translateX(-50%);
-            width: 90%;
-            max-width: 450px;
-            display: none;
+            width: 92%;
+            display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            z-index: 1000;
-            pointer-events: auto;
+            z-index: 25;
         }
 
         .action-btn {
@@ -77,6 +168,11 @@
             animation: buttonPulse 3s infinite alternate ease-in-out;
         }
 
+        @keyframes buttonPulse {
+            0% { box-shadow: 0 0 0 1px #8c681e, 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 1px 2px #ffffff, 0 0 4px rgba(212, 175, 55, 0.3); }
+            100% { box-shadow: 0 0 0 1px #d4af37, 0 4px 12px rgba(0, 0, 0, 0.8), inset 0 1px 4px #ffffff, 0 0 14px rgba(255, 215, 0, 0.9); }
+        }
+
         .btn-badge {
             position: absolute;
             top: -14px;
@@ -87,18 +183,22 @@
             border-radius: 50%;
             background: radial-gradient(circle, #1a4d2e 0%, #0d2b19 100%);
             border: 2px solid #f3d085;
-            box-shadow: 0 0 0 1px #6e4e13, 0 2px 4px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 0 1px #6e4e13, 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(243, 208, 133, 0.6);
             display: flex;
             justify-content: center;
             align-items: center;
+            z-index: 5;
         }
 
         .btn-badge svg { width: 14px; height: 14px; fill: #f5e2b3; }
-        .btn-text { font-size: 11px; font-weight: bold; color: #3b1d06; white-space: nowrap; }
+        .btn-text { font-size: 2.3vw; font-weight: bold; color: #3b1d06; white-space: nowrap; }
 
-        @keyframes buttonPulse {
-            0% { box-shadow: 0 0 0 1px #8c681e, 0 4px 8px rgba(0, 0, 0, 0.6); }
-            100% { box-shadow: 0 0 0 1px #d4af37, 0 4px 12px rgba(0, 0, 0, 0.8), 0 0 14px rgba(255, 215, 0, 0.9); }
+        @media (min-width: 500px) {
+            .top-title { font-size: 38px; }
+            .btn-text { font-size: 12px; }
+            .action-btn { padding: 22px 4px 10px 4px; }
+            .btn-badge { top: -16px; width: 32px; height: 32px; }
+            .btn-badge svg { width: 16px; height: 16px; }
         }
     </style>
 </head>
@@ -109,89 +209,188 @@
         <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
     </div>
 
-    <!-- 屏幕固定 2D 按鈕欄 -->
-    <div id="hud-buttons">
-        <div class="action-btn">
-            <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
-            <div class="btn-text">Flavor Profile</div>
-        </div>
-        <div class="action-btn">
-            <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg></div>
-            <div class="btn-text">Origin Story</div>
-        </div>
-        <div class="action-btn">
-            <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 59 16.17 3.83 12 12 12 3 7 3 2 3 2 5.03 2 7.5 3.5 10 2 12 2 12 2s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg></div>
-            <div class="btn-text">Exclusive Gift</div>
+    <!-- 識別成功後顯示的 UI 內容 -->
+    <div id="ar-ui-overlay">
+        <div class="responsive-stage" id="stage">
+            <canvas id="particleCanvas" class="particles-canvas"></canvas>
+
+            <div class="top-title-container">
+                <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
+            </div>
+
+            <!-- 圖層素材 -->
+            <img class="placed-image" src="7.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 103.4814%; z-index: 0; transform: translate(-50%, -50%) rotate(0.77deg);" />
+            <img class="placed-image" src="10.png" style="position: absolute; left: 16.6111%; top: 44.0888%; width: 51.9053%; z-index: 0; transform: translate(-50%, -50%) rotate(2.55deg);" />
+            <img class="placed-image" src="11.png" style="position: absolute; left: 93.9530%; top: 33.6785%; width: 92.9519%; z-index: 0; transform: translate(-50%, -50%) rotate(-11.45deg);" />
+            <img class="placed-image" src="4.png" style="position: absolute; left: 16.6111%; top: 55.7078%; width: 32.9980%; z-index: 2; transform: translate(-50%, -50%) rotate(0.10deg);" />
+            <img class="placed-image" src="9.png" style="position: absolute; left: 87.4311%; top: 54.8671%; width: 21.5789%; z-index: 2; transform: translate(-50%, -50%) rotate(1.17deg);" />
+            <img class="placed-image" src="2.png" style="position: absolute; left: 13.1054%; top: 63.5387%; width: 50.7775%; z-index: 4; transform: translate(-50%, -50%) rotate(-10.70deg);" />
+            <img class="placed-image" src="5.png" style="position: absolute; left: 78.4764%; top: 60.2211%; width: 31.1608%; z-index: 5; transform: translate(-50%, -50%) rotate(0.45deg);" />
+            <img class="placed-image" src="3.png" style="position: absolute; left: 18.5396%; top: 69.1282%; width: 37.7037%; z-index: 6; transform: translate(-50%, -50%) rotate(-11.34deg);" />
+            <img class="placed-image" src="6.png" style="position: absolute; left: 78.4764%; top: 64.0202%; width: 39.0327%; z-index: 6; transform: translate(-50%, -50%) rotate(2.36deg);" />
+            <img class="placed-image" src="1.png" style="position: absolute; left: 39.1315%; top: 63.4142%; width: 64.2193%; z-index: 8; transform: translate(-50%, -50%) rotate(0.82deg);" />
+            <img class="placed-image" src="13.png" style="position: absolute; left: 87.4311%; top: 12.9671%; width: 30.7334%; z-index: 8; transform: translate(-50%, -50%) rotate(9.84deg);" />
+            <img class="placed-image" src="14.png" style="position: absolute; left: 16.6111%; top: 23.5930%; width: 24.9709%; z-index: 8; transform: translate(-50%, -50%) rotate(-11.04deg);" />
+            <img class="placed-image" src="14.png" style="position: absolute; left: 11.1558%; top: 12.3079%; width: 27.3993%; z-index: 8; transform: translate(-50%, -50%) rotate(-3.78deg);" />
+            <img class="placed-image" src="12.png" style="position: absolute; left: 47.8179%; top: 76.8301%; width: 93.3333%; z-index: 8; transform: translate(-50%, -50%) rotate(0.87deg);" />
+
+            <div class="bottom-actions-container">
+                <div class="action-btn">
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+                    <div class="btn-text">Flavor Profile</div>
+                </div>
+                <div class="action-btn">
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg></div>
+                    <div class="btn-text">Origin Story</div>
+                </div>
+                <div class="action-btn">
+                    <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 59 16.17 3.83 12 12 12 3 7 3 2 3 2 5.03 2 7.5 3.5 10 2 12 2 12 2s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg></div>
+                    <div class="btn-text">Exclusive Gift</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- MindAR 3D 場景：素材直接掛載在 Target 下，實現自然近大遠小 -->
+    <!-- MindAR 場景 -->
     <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
              renderer="colorManagement: true, transparent: true, alpha: true" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
       
-        <a-assets>
-            <img id="img1" src="1.png">
-            <img id="img2" src="2.png">
-            <img id="img3" src="3.png">
-            <img id="img4" src="4.png">
-            <img id="img5" src="5.png">
-            <img id="img6" src="6.png">
-            <img id="img7" src="7.png">
-            <img id="img9" src="9.png">
-            <img id="img10" src="10.png">
-            <img id="img11" src="11.png">
-            <img id="img12" src="12.png">
-            <img id="img13" src="13.png">
-            <img id="img14" src="14.png">
-        </a-assets>
-
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-        <!-- 識別目標：內部所有 Plane 會原生跟隨鏡頭遠近放大縮小 -->
-        <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-            
-            <!-- 3D 空間素材陣列 (按原圖層比例與 Z 軸深度疊加) -->
-            <a-image src="#img7" position="0.01 0.08 0.00" width="2.0" height="1.8" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img10" position="-0.65 0.28 0.01" width="1.0" height="0.9" rotation="0 0 2.5" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img11" position="0.85 0.48 0.01" width="1.8" height="1.6" rotation="0 0 -11.4" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img4" position="-0.65 0.06 0.02" width="0.65" height="0.6" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img9" position="0.72 0.08 0.02" width="0.42" height="0.4" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img2" position="-0.72 -0.08 0.04" width="1.0" height="0.9" rotation="0 0 -10.7" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img5" position="0.55 -0.02 0.05" width="0.6" height="0.55" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img3" position="-0.62 -0.18 0.06" width="0.75" height="0.7" rotation="0 0 -11.3" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img6" position="0.55 -0.09 0.06" width="0.78" height="0.7" rotation="0 0 2.3" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img1" position="-0.21 -0.08 0.08" width="1.25" height="1.1" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img13" position="0.72 0.88 0.08" width="0.6" height="0.55" rotation="0 0 9.8" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img14" position="-0.65 0.68 0.08" width="0.5" height="0.45" rotation="0 0 -11.0" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img14" position="-0.75 0.89 0.08" width="0.52" height="0.48" rotation="0 0 -3.7" material="transparent: true; alphaTest: 0.1"></a-image>
-            <a-image src="#img12" position="-0.04 -0.32 0.08" width="1.8" height="1.0" material="transparent: true; alphaTest: 0.1"></a-image>
-
-            <!-- 3D 金色環境光 -->
-            <a-entity light="type: point; color: #ffd700; intensity: 1.5; distance: 5" position="0 0 0.5"></a-entity>
-
-        </a-entity>
+        <a-camera id="mainCamera" position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
     </a-scene>
 
     <script>
         const targetEntity = document.querySelector('#ar-target');
+        const cameraEntity = document.querySelector('#mainCamera');
         const audioOverlay = document.querySelector('#audio-overlay');
-        const hudButtons = document.querySelector('#hud-buttons');
+        const arUiOverlay = document.querySelector('#ar-ui-overlay');
+
+        let isTargetFound = false;
 
         audioOverlay.addEventListener('click', () => {
             audioOverlay.style.display = 'none';
         });
 
-        // 識別事件監聽：控制 UI 的顯隱
         targetEntity.addEventListener("targetFound", () => {
-            hudButtons.style.display = 'flex';
+            isTargetFound = true;
+            arUiOverlay.style.display = 'flex';
         });
 
         targetEntity.addEventListener("targetLost", () => {
-            hudButtons.style.display = 'none';
+            isTargetFound = false;
+            arUiOverlay.style.display = 'none';
         });
+
+        // --- 核心：基於 Three.js 世界座標系的精確「近大遠小」算法 ---
+        const targetVec = new THREE.Vector3();
+        const cameraVec = new THREE.Vector3();
+
+        // 基準距離參數 (可根據喜好微調)
+        const BASE_DISTANCE = 3.0; // 基準距離（距離為 3 時，Scale 為 1.0）
+        const MIN_SCALE = 0.5;      // 拿非常遠時，最小縮放至 0.5 倍
+        const MAX_SCALE = 1.6;      // 拿非常近時，最大放大至 1.6 倍
+
+        let currentScale = 1;
+
+        function updateDistanceScale() {
+            if (isTargetFound && targetEntity.object3D && cameraEntity.object3D) {
+                // 1. 取得 Target 與 Camera 在 3D 世界空間中的真實點位
+                targetEntity.object3D.getWorldPosition(targetVec);
+                cameraEntity.object3D.getWorldPosition(cameraVec);
+
+                // 2. 計算兩者間的歐式距離
+                const distance = cameraVec.distanceTo(targetVec);
+
+                if (distance > 0) {
+                    // 3. 近大遠小邏輯：距離越小，scale 越大
+                    const rawScale = BASE_DISTANCE / distance;
+                    
+                    // 4. 限制最大與最小縮放範圍
+                    const clampedScale = Math.min(Math.max(rawScale, MIN_SCALE), MAX_SCALE);
+                    
+                    // 5. 加上緩衝（Lerp），防止手抖造成畫面劇烈晃動
+                    currentScale += (clampedScale - currentScale) * 0.2;
+
+                    // 6. 應用到 2D UI 容器
+                    arUiOverlay.style.transform = `scale(${currentScale.toFixed(3)})`;
+                }
+            }
+            requestAnimationFrame(updateDistanceScale);
+        }
+        updateDistanceScale();
+
+        // --- 金色粒子引擎 ---
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        const stage = document.getElementById('stage');
+
+        let width, height;
+        function resizeCanvas() {
+            width = stage.clientWidth;
+            height = stage.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class GoldParticle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = height + Math.random() * 30;
+                this.size = Math.random() * 3 + 1;
+                this.speedY = Math.random() * 1.5 + 0.4;
+                this.speedX = (Math.random() - 0.5) * 0.6;
+                this.opacity = Math.random() * 0.8 + 0.2;
+                this.pulseSpeed = Math.random() * 0.03 + 0.01;
+                this.isSparkle = Math.random() < 0.3;
+            }
+            update() {
+                this.y -= this.speedY;
+                this.x += this.speedX;
+                this.opacity += Math.sin(Date.now() * this.pulseSpeed) * 0.015;
+                if (this.y < -20 || this.opacity <= 0) this.reset();
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, Math.min(1, this.opacity));
+                if (this.isSparkle) {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.fillStyle = '#ffe259';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(this.x - this.size * 3.5, this.y); ctx.lineTo(this.x + this.size * 3.5, this.y);
+                    ctx.moveTo(this.x, this.y - this.size * 3.5); ctx.lineTo(this.x, this.y + this.size * 3.5);
+                    ctx.stroke();
+                } else {
+                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2.5);
+                    gradient.addColorStop(0, '#ffffff');
+                    gradient.addColorStop(0.3, '#ffd700');
+                    gradient.addColorStop(0.7, 'rgba(212, 175, 55, 0.4)');
+                    gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        const particles = Array.from({ length: 50 }, () => new GoldParticle());
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
     </script>
 </body>
 </html>
