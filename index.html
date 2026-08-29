@@ -60,7 +60,6 @@
             align-items: center;
             pointer-events: none;
             background: transparent;
-            /* 縮放動畫中心點為螢幕中央 */
             transform-origin: center center;
             transition: opacity 0.2s ease;
         }
@@ -91,8 +90,25 @@
             pointer-events: none;
         }
 
+        /* ===== 每個 PNG 圖層加載金色光晕特效 ===== */
         .placed-image {
             pointer-events: none;
+            /* 預設金色光暈 */
+            filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.6)) 
+                    drop-shadow(0px 0px 18px rgba(212, 175, 55, 0.4));
+            animation: pngGoldenGlow 3s infinite alternate ease-in-out;
+        }
+
+        /* 金色光暈呼吸動畫 */
+        @keyframes pngGoldenGlow {
+            0% {
+                filter: drop-shadow(0px 0px 5px rgba(255, 215, 0, 0.5)) 
+                        drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.3));
+            }
+            100% {
+                filter: drop-shadow(0px 0px 12px rgba(255, 230, 120, 0.8)) 
+                        drop-shadow(0px 0px 25px rgba(255, 191, 0, 0.6));
+            }
         }
 
         /* 頂部藝術標題 */
@@ -122,8 +138,8 @@
         }
 
         @keyframes titleGlow {
-            0% { filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0px 0px 6px rgba(247, 160, 52, 0.4)); }
-            100% { filter: drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.9)) drop-shadow(0px 0px 18px rgba(255, 215, 0, 0.9)); }
+            0% { filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0px 0px 8px rgba(247, 160, 52, 0.5)); }
+            100% { filter: drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.9)) drop-shadow(0px 0px 22px rgba(255, 215, 0, 0.95)); }
         }
 
         /* 底部按鈕欄容器 */
@@ -187,7 +203,7 @@
 
         @keyframes buttonPulse {
             0% { box-shadow: 0 0 0 1px #8c681e, 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 1px 2px #ffffff, 0 0 4px rgba(212, 175, 55, 0.3); }
-            100% { box-shadow: 0 0 0 1px #d4af37, 0 4px 12px rgba(0, 0, 0, 0.8), inset 0 1px 4px #ffffff, 0 0 12px rgba(255, 215, 0, 0.8); }
+            100% { box-shadow: 0 0 0 1px #d4af37, 0 4px 12px rgba(0, 0, 0, 0.8), inset 0 1px 4px #ffffff, 0 0 14px rgba(255, 215, 0, 0.9); }
         }
 
         .action-btn:active { transform: scale(0.96); }
@@ -247,13 +263,14 @@
     <!-- 識別成功後顯示的 UI 內容 -->
     <div id="ar-ui-overlay">
         <div class="responsive-stage" id="stage">
+            <!-- 升級版金色粒子 Canvas -->
             <canvas id="particleCanvas" class="particles-canvas"></canvas>
 
             <div class="top-title-container">
                 <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
             </div>
 
-            <!-- 圖層素材 -->
+            <!-- 圖層素材（自動帶有金色光暈） -->
             <img class="placed-image" src="7.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 103.4814%; z-index: 0; transform: translate(-50%, -50%) rotate(0.77deg);" />
             <img class="placed-image" src="10.png" style="position: absolute; left: 16.6111%; top: 44.0888%; width: 51.9053%; z-index: 0; transform: translate(-50%, -50%) rotate(2.55deg);" />
             <img class="placed-image" src="11.png" style="position: absolute; left: 93.9530%; top: 33.6785%; width: 92.9519%; z-index: 0; transform: translate(-50%, -50%) rotate(-11.45deg);" />
@@ -334,43 +351,31 @@
             console.log("❌ 失去識別標籤");
             isTargetFound = false;
             arUiOverlay.style.display = 'none';
-            arUiOverlay.style.transform = 'scale(1)'; // 重置 Scale
+            arUiOverlay.style.transform = 'scale(1)';
         });
 
         // --- 距離縮放計算引擎 ---
-        // 基準距離參數 (可根據你的標籤大小微調)
-        const BASE_DISTANCE = 2.5; // 標準距離 (Scale = 1.0)
-        const MIN_SCALE = 0.65;    // 最遠拉遠時最小縮放比
-        const MAX_SCALE = 1.35;    // 最近拉近時最大縮放比
+        const BASE_DISTANCE = 2.5; 
+        const MIN_SCALE = 0.65;    
+        const MAX_SCALE = 1.35;    
 
         function updateDistanceScale() {
             if (isTargetFound && targetEntity.object3D) {
-                // 取得 3D 世界座標中的 Z 軸深度 (距離相機近遠)
                 const position = targetEntity.object3D.position;
                 const distance = Math.sqrt(position.x * position.x + position.y * position.y + position.z * position.z);
 
                 if (distance > 0) {
-                    // 計算縮放：距離越近（distance 小），scale 越大
                     const calculatedScale = BASE_DISTANCE / distance;
-                    
-                    // 限制縮放邊界
                     targetScale = Math.min(Math.max(calculatedScale, MIN_SCALE), MAX_SCALE);
-
-                    // Lerp 平滑插值，避免手抖導致 UI 強烈抖動
                     currentScale += (targetScale - currentScale) * 0.15;
-                    
-                    // 應用到 UI 容器的 CSS Transform
                     arUiOverlay.style.transform = `scale(${currentScale.toFixed(3)})`;
                 }
             }
-
             requestAnimationFrame(updateDistanceScale);
         }
-
-        // 啟動距離監測動畫循環
         updateDistanceScale();
 
-        // --- 金色粒子 Engine ---
+        // --- 炫彩金色粒子與星芒渲染引擎 ---
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
         const stage = document.getElementById('stage');
@@ -385,28 +390,28 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        class Particle {
+        class GoldParticle {
             constructor() {
                 this.reset();
             }
 
             reset() {
                 this.x = Math.random() * width;
-                this.y = height + Math.random() * 20;
-                this.size = Math.random() * 2.5 + 0.5;
-                this.speedY = Math.random() * 1.2 + 0.3;
-                this.speedX = (Math.random() - 0.5) * 0.4;
-                this.opacity = Math.random() * 0.7 + 0.3;
-                this.pulseSpeed = Math.random() * 0.02 + 0.005;
-                this.isSparkle = Math.random() < 0.25;
+                this.y = height + Math.random() * 30;
+                this.size = Math.random() * 3 + 1;
+                this.speedY = Math.random() * 1.5 + 0.4;
+                this.speedX = (Math.random() - 0.5) * 0.6;
+                this.opacity = Math.random() * 0.8 + 0.2;
+                this.pulseSpeed = Math.random() * 0.03 + 0.01;
+                this.isSparkle = Math.random() < 0.3; // 30% 機率生成星芒
             }
 
             update() {
                 this.y -= this.speedY;
                 this.x += this.speedX;
-                this.opacity += Math.sin(Date.now() * this.pulseSpeed) * 0.01;
+                this.opacity += Math.sin(Date.now() * this.pulseSpeed) * 0.015;
 
-                if (this.y < -10 || this.opacity <= 0) {
+                if (this.y < -20 || this.opacity <= 0) {
                     this.reset();
                 }
             }
@@ -416,29 +421,35 @@
                 ctx.globalAlpha = Math.max(0, Math.min(1, this.opacity));
 
                 if (this.isSparkle) {
-                    ctx.strokeStyle = '#fff5aa';
-                    ctx.fillStyle = '#ffd700';
-                    ctx.lineWidth = 0.8;
+                    // 十字十字星芒粒子
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.fillStyle = '#ffe259';
+                    ctx.lineWidth = 1;
                     
                     ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.size * 0.6, 0, Math.PI * 2);
+                    ctx.arc(this.x, this.y, this.size * 0.5, 0, Math.PI * 2);
                     ctx.fill();
 
                     ctx.beginPath();
-                    ctx.moveTo(this.x - this.size * 3, this.y);
-                    ctx.lineTo(this.x + this.size * 3, this.y);
-                    ctx.moveTo(this.x, this.y - this.size * 3);
-                    ctx.lineTo(this.x, this.y + this.size * 3);
+                    ctx.moveTo(this.x - this.size * 3.5, this.y);
+                    ctx.lineTo(this.x + this.size * 3.5, this.y);
+                    ctx.moveTo(this.x, this.y - this.size * 3.5);
+                    ctx.lineTo(this.x, this.y + this.size * 3.5);
                     ctx.stroke();
                 } else {
-                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+                    // 發光金屬光暈圓球粒子
+                    const gradient = ctx.createRadialGradient(
+                        this.x, this.y, 0, 
+                        this.x, this.y, this.size * 2.5
+                    );
                     gradient.addColorStop(0, '#ffffff');
-                    gradient.addColorStop(0.4, '#ffd700');
+                    gradient.addColorStop(0.3, '#ffd700');
+                    gradient.addColorStop(0.7, 'rgba(212, 175, 55, 0.4)');
                     gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
                     
                     ctx.fillStyle = gradient;
                     ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+                    ctx.arc(this.x, this.y, this.size * 2.5, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
@@ -446,7 +457,8 @@
             }
         }
 
-        const particles = Array.from({ length: 45 }, () => new Particle());
+        // 產生 60 個飄逸金色粒子
+        const particles = Array.from({ length: 60 }, () => new GoldParticle());
 
         function animateParticles() {
             ctx.clearRect(0, 0, width, height);
