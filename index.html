@@ -88,25 +88,6 @@
             pointer-events: none;
         }
 
-        /* 每個 PNG 圖層專屬金色光暈 */
-        .placed-image {
-            pointer-events: none;
-            filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.6)) 
-                    drop-shadow(0px 0px 18px rgba(212, 175, 55, 0.4));
-            animation: pngGoldenGlow 3s infinite alternate ease-in-out;
-        }
-
-        @keyframes pngGoldenGlow {
-            0% {
-                filter: drop-shadow(0px 0px 5px rgba(255, 215, 0, 0.5)) 
-                        drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.3));
-            }
-            100% {
-                filter: drop-shadow(0px 0px 12px rgba(255, 230, 120, 0.8)) 
-                        drop-shadow(0px 0px 25px rgba(255, 191, 0, 0.6));
-            }
-        }
-
         /* 頂部藝術標題 */
         .top-title-container {
             position: absolute;
@@ -201,12 +182,12 @@
 </head>
 <body>
 
-    <!-- 點擊進入 AR -->
+    <!-- 點擊進入 AR 覆蓋頁 -->
     <div id="audio-overlay">
         <div class="overlay-btn">🔊 點擊螢幕開啟音效並進入 AR</div>
     </div>
 
-    <!-- 全屏 2D UI 內容 -->
+    <!-- 全屏 2D UI 覆蓋層（標題、按鈕、粒子） -->
     <div id="ar-ui-overlay">
         <div class="responsive-stage" id="stage">
             <canvas id="particleCanvas" class="particles-canvas"></canvas>
@@ -214,20 +195,6 @@
             <div class="top-title-container">
                 <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
             </div>
-
-            <!-- 圖層素材（1.png 與 12.png 已移至 3D 空間，此處保留其餘圖層） -->
-            <img class="placed-image" src="7.png" style="position: absolute; left: 51.0351%; top: 54.8671%; width: 103.4814%; z-index: 0; transform: translate(-50%, -50%) rotate(0.77deg);" />
-            <img class="placed-image" src="10.png" style="position: absolute; left: 16.6111%; top: 44.0888%; width: 51.9053%; z-index: 0; transform: translate(-50%, -50%) rotate(2.55deg);" />
-            <img class="placed-image" src="11.png" style="position: absolute; left: 93.9530%; top: 33.6785%; width: 92.9519%; z-index: 0; transform: translate(-50%, -50%) rotate(-11.45deg);" />
-            <img class="placed-image" src="4.png" style="position: absolute; left: 16.6111%; top: 55.7078%; width: 32.9980%; z-index: 2; transform: translate(-50%, -50%) rotate(0.10deg);" />
-            <img class="placed-image" src="9.png" style="position: absolute; left: 87.4311%; top: 54.8671%; width: 21.5789%; z-index: 2; transform: translate(-50%, -50%) rotate(1.17deg);" />
-            <img class="placed-image" src="2.png" style="position: absolute; left: 13.1054%; top: 63.5387%; width: 50.7775%; z-index: 4; transform: translate(-50%, -50%) rotate(-10.70deg);" />
-            <img class="placed-image" src="5.png" style="position: absolute; left: 78.4764%; top: 60.2211%; width: 31.1608%; z-index: 5; transform: translate(-50%, -50%) rotate(0.45deg);" />
-            <img class="placed-image" src="3.png" style="position: absolute; left: 18.5396%; top: 69.1282%; width: 37.7037%; z-index: 6; transform: translate(-50%, -50%) rotate(-11.34deg);" />
-            <img class="placed-image" src="6.png" style="position: absolute; left: 78.4764%; top: 64.0202%; width: 39.0327%; z-index: 6; transform: translate(-50%, -50%) rotate(2.36deg);" />
-            <img class="placed-image" src="13.png" style="position: absolute; left: 87.4311%; top: 12.9671%; width: 30.7334%; z-index: 8; transform: translate(-50%, -50%) rotate(9.84deg);" />
-            <img class="placed-image" src="14.png" style="position: absolute; left: 16.6111%; top: 23.5930%; width: 24.9709%; z-index: 8; transform: translate(-50%, -50%) rotate(-11.04deg);" />
-            <img class="placed-image" src="14.png" style="position: absolute; left: 11.1558%; top: 12.3079%; width: 27.3993%; z-index: 8; transform: translate(-50%, -50%) rotate(-3.78deg);" />
 
             <div class="bottom-actions-container">
                 <div class="action-btn">
@@ -246,7 +213,7 @@
         </div>
     </div>
 
-    <!-- MindAR 場景 -->
+    <!-- MindAR 3D 場景 -->
     <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
              color-space="sRGB" 
              renderer="colorManagement: true, transparent: true, alpha: true" 
@@ -255,29 +222,35 @@
       
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
+        <!-- 3D 識別追蹤實體：包含所有轉換後的 PNG 圖層 -->
         <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
-            <!-- 12.png（梯田背景）：移至下方（Y = -0.58），Z軸稍微往前（Z = 0.12） -->
-            <a-plane id="bottom-image-3d"
-                     src="12.png" 
-                     position="0 -0.58 0.12" 
-                     width="1.85" 
-                     height="1.0"
-                     rotation="0 0 0.87"
-                     scale="1 1 1" 
-                     material="transparent: true; alphaTest: 0.1; depthTest: false;"
-                     render-order="998">
-            </a-plane>
+            
+            <!-- [z-index: 0] 背景基礎圖層 -->
+            <a-plane src="7.png" position="0.01 -0.08 0.02" width="1.03" height="0.65" rotation="0 0 0.77" material="transparent: true; alphaTest: 0.1;" render-order="990"></a-plane>
+            <a-plane src="10.png" position="-0.33 0.09 0.03" width="0.52" height="0.33" rotation="0 0 2.55" material="transparent: true; alphaTest: 0.1;" render-order="991"></a-plane>
+            <a-plane src="11.png" position="0.44 0.26 0.03" width="0.93" height="0.58" rotation="0 0 -11.45" material="transparent: true; alphaTest: 0.1;" render-order="991"></a-plane>
 
-            <!-- 1.png（麝香貓前景）：保持在中間偏上方，Z軸推近（Z = 0.25） -->
-            <a-plane id="front-image-3d"
-                     src="1.png" 
-                     position="0.1 -0.15 0.25" 
-                     width="1.2" 
-                     height="0.8"
-                     scale="0.82 0.82 0.82" 
-                     material="transparent: true; alphaTest: 0.1; depthTest: false;"
-                     render-order="999">
-            </a-plane>
+            <!-- [z-index: 2] 中景元素 -->
+            <a-plane src="4.png" position="-0.33 -0.09 0.06" width="0.33" height="0.21" rotation="0 0 0.10" scale="0.93 0.93 0.93" material="transparent: true; alphaTest: 0.1;" render-order="992"></a-plane>
+            <a-plane src="9.png" position="0.37 -0.08 0.06" width="0.22" height="0.14" rotation="0 0 1.17" scale="0.93 0.93 0.93" material="transparent: true; alphaTest: 0.1;" render-order="992"></a-plane>
+
+            <!-- [z-index: 4 - 6] 主要物體與前景細節層 -->
+            <a-plane src="2.png" position="-0.37 -0.22 0.10" width="0.51" height="0.32" rotation="0 0 -10.70" scale="0.89 0.89 0.89" material="transparent: true; alphaTest: 0.1;" render-order="993"></a-plane>
+            <a-plane src="5.png" position="0.28 -0.16 0.13" width="0.31" height="0.19" rotation="0 0 0.45" scale="0.86 0.86 0.86" material="transparent: true; alphaTest: 0.1;" render-order="994"></a-plane>
+            <a-plane src="3.png" position="-0.31 -0.31 0.16" width="0.38" height="0.24" rotation="0 0 -11.34" scale="0.84 0.84 0.84" material="transparent: true; alphaTest: 0.1;" render-order="995"></a-plane>
+            <a-plane src="6.png" position="0.28 -0.22 0.16" width="0.39" height="0.24" rotation="0 0 2.36" scale="0.84 0.84 0.84" material="transparent: true; alphaTest: 0.1;" render-order="995"></a-plane>
+
+            <!-- [z-index: 8] 飛鳥與頂部裝飾元素 -->
+            <a-plane src="13.png" position="0.37 0.59 0.20" width="0.31" height="0.19" rotation="0 0 9.84" scale="0.81 0.81 0.81" material="transparent: true; alphaTest: 0.1;" render-order="997"></a-plane>
+            <a-plane src="14.png" position="-0.33 0.42 0.20" width="0.25" height="0.16" rotation="0 0 -11.04" scale="0.81 0.81 0.81" material="transparent: true; alphaTest: 0.1;" render-order="997"></a-plane>
+            <a-plane src="14.png" position="-0.39 0.60 0.22" width="0.27" height="0.17" rotation="0 0 -3.78" scale="0.79 0.79 0.79" material="transparent: true; alphaTest: 0.1;" render-order="997"></a-plane>
+
+            <!-- 12.png（梯田底圖）：定位於下方 -->
+            <a-plane src="12.png" position="0 -0.58 0.12" width="1.85" height="1.0" rotation="0 0 0.87" material="transparent: true; alphaTest: 0.1;" render-order="998"></a-plane>
+
+            <!-- 1.png（麝香貓前景）：定位於最前層 -->
+            <a-plane src="1.png" position="0.1 -0.15 0.25" width="1.2" height="0.8" scale="0.82 0.82 0.82" material="transparent: true; alphaTest: 0.1;" render-order="999"></a-plane>
+
         </a-entity>
     </a-scene>
 
