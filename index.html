@@ -1,656 +1,264 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WebAR 青花瓷潮國風動態交互</title>
-    <!-- 引入 A-Frame 與 MindAR -->
+    <title>TIMOR LESTE - MindAR 3D Space</title>
+    <!-- 引入 A-Frame -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-
+    <!-- 引入 MindAR A-Frame 專用組件 -->
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        :root {
-            --bg-dark: #0B101D;
-            --primary-blue: #1E3A8A;
-            --accent-cyan: #00F2FE;
-            --accent-purple: #7C3AED;
-            --accent-gold: #FFD700;
-            --glass-card: rgba(15, 23, 42, 0.85);
-            --border-glow: linear-gradient(135deg, rgba(0,242,254,0.6), rgba(124,58,237,0.4), rgba(255,215,0,0.6));
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body, html { 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            background: transparent !important; 
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-user-select: none;
+        /* 相機畫質全屏鋪滿 */
+        video {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            z-index: -2 !important;
         }
 
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif;
+        .a-canvas {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 1 !important;
         }
-
-        /* 覆蓋在 AR 相機畫面上的 UI 容器 */
-        .ar-viewport {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
+        
+        /* 頂部與底部 2D UI 懸浮層 */
+        .ui-container {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
             pointer-events: none;
+            z-index: 999;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-            overflow: hidden;
-        }
-
-        .ar-viewport.active-mode {
-            pointer-events: auto;
-        }
-
-        /* 標題卡片 */
-        .ar-title-group {
-            position: absolute;
-            top: clamp(5%, 7vh, 10%);
-            z-index: 30;
-            width: 92%;
-            max-width: 360px;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            opacity: 0;
-            transform: translateY(-30px);
-            pointer-events: none;
-        }
-
-        .ar-title-group.show {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
-        }
-
-        .ar-title-group.hidden {
-            opacity: 0;
-            pointer-events: none;
-            transform: translateY(-30px) scale(0.95);
-        }
-
-        .main-card {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--glass-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 16px;
-            position: relative;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-        }
-
-        .main-card::before, .info-card-container::before, .popover-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            padding: 1.5px;
-            background: var(--border-glow);
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            pointer-events: none;
-        }
-
-        .main-title {
-            font-size: clamp(15px, 4.5vw, 19px);
-            font-weight: 800;
-            background: linear-gradient(135deg, #FFFFFF 20%, var(--accent-cyan) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: 0.5px;
-            animation: textShimmer 3s infinite alternate;
-        }
-
-        .sub-title {
-            font-size: clamp(11px, 3vw, 12px);
-            color: var(--accent-gold);
-            margin-top: 2px;
-            font-weight: 600;
-        }
-
-        .guide-btn {
-            width: 100%;
-            height: 40px;
-            margin-top: 10px;
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-purple) 50%, var(--accent-cyan) 100%);
-            border-radius: 10px;
-            border: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
-            animation: btnPulse 2s infinite ease-in-out;
-            transition: transform 0.2s ease;
-        }
-
-        .guide-btn:active {
-            transform: scale(0.96);
-        }
-
-        .btn-text {
-            font-size: 14px;
-            font-weight: 700;
-            color: #FFFFFF;
-            letter-spacing: 1px;
-        }
-
-        /* 瓷盤容器 */
-        .porcelain-plate-container {
-            position: relative;
-            width: clamp(240px, 70vw, 350px);
-            height: clamp(240px, 70vw, 350px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            perspective: 1000px;
-            transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s ease;
-            z-index: 10;
-            margin-top: 20px;
-            opacity: 0;
-            transform: scale(0.6);
-            pointer-events: none;
-        }
-
-        .porcelain-plate-container.show {
-            opacity: 1;
-            transform: scale(1);
-            pointer-events: auto;
-        }
-
-        .porcelain-plate-img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            filter: drop-shadow(0 12px 35px rgba(0, 242, 254, 0.3));
-            animation: plateFloat 4s ease-in-out infinite alternate;
-        }
-
-        .ar-viewport.active-mode .porcelain-plate-container {
-            transform: translateY(-35px) scale(0.88);
-        }
-
-        /* 標註點 */
-        .hotspot-point {
-            position: absolute;
-            left: 28%;
-            top: 76%;
-            width: 30px;
-            height: 30px;
-            transform: translate(-50%, -50%) scale(0);
-            cursor: pointer;
-            z-index: 25;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease;
-        }
-
-        .hotspot-point.visible {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        .hotspot-inner {
-            width: 10px;
-            height: 10px;
-            background-color: #FFFFFF;
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--accent-cyan), 0 0 15px #FFF;
-            position: relative;
-            z-index: 2;
-        }
-
-        .hotspot-pulse {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--accent-cyan);
-            border-radius: 50%;
-            animation: hotspotRipple 1.8s infinite ease-out;
-            box-sizing: border-box;
-        }
-
-        /* 同位置彈出的「卍字錦」交互卡片 */
-        .popover-card {
-            position: absolute;
-            left: 28%;
-            top: 76%;
-            transform: translate(-50%, -50%) scale(0.85);
-            width: 210px;
-            background: var(--glass-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 14px;
-            padding: 12px 14px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-            z-index: 30;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-align: left;
-        }
-
-        .popover-card.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        .popover-close {
-            position: absolute;
-            top: 6px;
-            right: 8px;
-            background: none;
-            border: none;
-            color: rgba(255,255,255,0.6);
-            font-size: 16px;
-            cursor: pointer;
-            padding: 2px;
-            line-height: 1;
-        }
-
-        .popover-close:hover {
-            color: #FFF;
-        }
-
-        .popover-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: var(--accent-gold);
-            margin-bottom: 6px;
-            letter-spacing: 0.5px;
-        }
-
-        .popover-desc {
-            font-size: 11.5px;
-            color: #E2E8F0;
-            line-height: 1.5;
-        }
-
-        .popover-highlight {
-            display: block;
-            margin-top: 4px;
-            color: var(--accent-cyan);
-            font-weight: 600;
-        }
-
-        /* 知識大卡 */
-        .info-card-container {
-            position: absolute;
-            bottom: clamp(4%, 6vh, 8%);
-            width: 92%;
-            max-width: 380px;
-            background: var(--glass-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 20px;
-            padding: 14px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
-            opacity: 0;
-            transform: translateY(60px) scale(0.95);
-            pointer-events: none;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 20;
-        }
-
-        .info-card-container.active {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            pointer-events: auto;
-        }
-
-        .card-header-bar {
-            display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 8px;
-            border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
-            margin-bottom: 10px;
-        }
-
-        .header-title-group {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .header-icon {
-            width: 16px;
-            height: 16px;
-            fill: var(--accent-gold);
-            animation: iconSpin 6s linear infinite;
-        }
-
-        .header-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #FFFFFF;
-        }
-
-        .header-badge {
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 12px;
-            background: rgba(0, 242, 254, 0.15);
-            border: 1px solid var(--accent-cyan);
-            color: var(--accent-cyan);
-            font-weight: 700;
-        }
-
-        .knowledge-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-
-        .knowledge-item {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            padding: 10px 4px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
             opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s ease;
+            transition: opacity 0.4s ease-in-out;
         }
 
-        .info-card-container.active .knowledge-item {
-            animation: itemCascadeIn 0.5s ease forwards;
+        .ui-container.visible {
+            opacity: 1;
+            pointer-events: none;
         }
 
-        .info-card-container.active .knowledge-item:nth-child(1) { animation-delay: 0.1s; }
-        .info-card-container.active .knowledge-item:nth-child(2) { animation-delay: 0.2s; }
-        .info-card-container.active .knowledge-item:nth-child(3) { animation-delay: 0.3s; }
-
-        .knowledge-item:active {
-            background: rgba(0, 242, 254, 0.15);
-            border-color: var(--accent-cyan);
-            transform: scale(0.95);
+        .top-title-container {
+            margin-top: 5vh;
+            width: 90%;
+            text-align: center;
+            pointer-events: none;
         }
 
-        .k-icon-wrapper {
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(0, 242, 254, 0.2));
+        .top-title {
+            font-family: Impact, "Arial Black", sans-serif;
+            font-size: 8vw;
+            line-height: 0.95;
+            text-transform: uppercase;
+            background: linear-gradient(180deg, #fff3a1 0%, #f7a034 40%, #c43216 80%, #7a1204 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            -webkit-text-stroke: 1px #4a0900;
+            filter: drop-shadow(0px 0px 10px rgba(255, 215, 0, 0.8));
+        }
+
+        .bottom-actions-container {
+            margin-bottom: 4vh;
+            width: 92%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: auto;
+        }
+
+        .action-btn {
+            position: relative;
+            width: 31%;
+            background: linear-gradient(180deg, #fffef2 0%, #f7e6c4 50%, #e6ca91 100%);
+            border: 1.5px solid #d4af37;
+            border-radius: 12px;
+            padding: 22px 4px 10px 4px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 1px 2px #fff;
+            cursor: pointer;
+        }
+
+        .btn-badge {
+            position: absolute;
+            top: -16px; left: 50%;
+            transform: translateX(-50%);
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #1a4d2e 0%, #0d2b19 100%);
+            border: 2px solid #f3d085;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .btn-badge svg { width: 16px; height: 16px; fill: #f5e2b3; }
+        .btn-text { font-family: Georgia, serif; font-size: 2.5vw; font-weight: bold; color: #3b1d06; }
+
+        /* 掃描提示樣式 */
+        .scan-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 1000;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 6px;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
         }
-
-        .k-icon {
-            width: 18px;
-            height: 18px;
-            fill: var(--accent-gold);
+        .scan-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
-
-        .k-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #FFFFFF;
+        .scan-box {
+            width: 60vw;
+            height: 60vw;
+            border: 2px dashed rgba(255, 215, 0, 0.7);
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3) inset;
+            animation: scanPulse 2s infinite alternate;
         }
-
-        .k-tag {
-            font-size: 9px;
-            color: var(--accent-cyan);
-            margin: 2px 0 4px 0;
-            font-weight: 600;
-        }
-
-        .k-desc {
-            font-size: 9.5px;
-            color: #A1A1AA;
-            line-height: 1.25;
-        }
-
-        @keyframes hotspotRipple {
-            0% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(2.2); opacity: 0; }
-        }
-
-        @keyframes plateFloat {
-            0% { transform: translateY(0px) rotateX(12deg); }
-            100% { transform: translateY(-12px) rotateX(18deg); }
-        }
-
-        @keyframes btnPulse {
-            0%, 100% { box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3); }
-            50% { box-shadow: 0 4px 25px rgba(0, 242, 254, 0.7); }
-        }
-
-        @keyframes itemCascadeIn {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes iconSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @keyframes textShimmer {
-            0% { filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)); }
-            100% { filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.6)); }
+        @keyframes scanPulse {
+            0% { border-color: rgba(255, 215, 0, 0.4); transform: scale(1); }
+            100% { border-color: rgba(255, 215, 0, 1); transform: scale(1.02); }
         }
     </style>
 </head>
 <body>
 
-    <!-- MindAR 相機場景 -->
-    <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
-             color-space="sRGB" 
-             renderer="colorManagement: true, physicallyCorrectLights" 
-             vr-mode-ui="enabled: false" 
-             device-orientation-permission-ui="enabled: false">
-      
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-        <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
-    </a-scene>
+    <!-- 掃描中提示框 -->
+    <div class="scan-overlay" id="scanOverlay">
+        <div class="scan-box"></div>
+    </div>
 
-    <!-- AR 交互 UI 圖層 -->
-    <div class="ar-viewport" id="viewport">
-
-        <!-- 1. 置頂標題卡片 -->
-        <div class="ar-title-group" id="titleGroup">
-            <div class="main-card">
-                <div class="main-title">康熙國風爆款 · 西廂記青花盤</div>
-                <div class="sub-title">✦ 解鎖三項古瓷黑科技 ✦</div>
-                <button class="guide-btn" onclick="handleStartExplore()">
-                    <span class="btn-text">探索古瓷密碼</span>
-                </button>
-            </div>
+    <!-- 2D UI 疊加層 -->
+    <div class="ui-container" id="uiContainer">
+        <div class="top-title-container">
+            <h1 class="top-title">TIMOR LESTE<br>KOPI LUWAK</h1>
         </div>
-
-        <!-- 2. 瓷盤容器與白點位置交互點 -->
-        <div class="porcelain-plate-container" id="plateContainer">
-            <img src="1.png" alt="康熙青花盤" class="porcelain-plate-img" />
-            
-            <!-- 白點交互點 -->
-            <div class="hotspot-point" id="hotspot1">
-                <div class="hotspot-inner"></div>
-                <div class="hotspot-pulse"></div>
+        <div class="bottom-actions-container">
+            <div class="action-btn" onclick="alert('Flavor Profile clicked!')">
+                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+                <div class="btn-text">Flavor Profile</div>
             </div>
-
-            <!-- 同位置彈出的交互卡片 -->
-            <div class="popover-card" id="popoverCard">
-                <button class="popover-close" id="popoverClose">&times;</button>
-                <div class="popover-title">卍字錦</div>
-                <div class="popover-desc">
-                    “卍” 本是佛教吉祥符號<br>
-                    延伸為連續的幾何紋後
-                    <span class="popover-highlight">寓意 “萬福連綿、永無止境”</span>
-                </div>
+            <div class="action-btn" onclick="alert('Origin Story clicked!')">
+                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm0 2.75l5 3.75v8.5H7v-8.5l5-3.75z"/></svg></div>
+                <div class="btn-text">Origin Story</div>
             </div>
-        </div>
-
-        <!-- 3. 動態知識大卡 -->
-        <div class="info-card-container" id="infoCard">
-            <div class="card-header-bar">
-                <div class="header-title-group">
-                    <svg class="header-icon" viewBox="0 0 24 24">
-                        <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
-                    </svg>
-                    <span class="header-title">西廂記青花盤 · 工藝解構</span>
-                </div>
-                <span class="header-badge">潮國風特展</span>
-            </div>
-
-            <div class="knowledge-grid">
-                <div class="knowledge-item">
-                    <div class="k-icon-wrapper">
-                        <svg class="k-icon" viewBox="0 0 24 24">
-                            <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 21l3.53-.62C9.28 20.73 10.6 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
-                        </svg>
-                    </div>
-                    <div class="k-title">分水技法</div>
-                    <div class="k-tag">#色階漸變</div>
-                    <div class="k-desc">一料燒出五色墨韻<br>翠毛藍巔峰</div>
-                </div>
-
-                <div class="knowledge-item">
-                    <div class="k-icon-wrapper">
-                        <svg class="k-icon" viewBox="0 0 24 24">
-                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-                        </svg>
-                    </div>
-                    <div class="k-title">版畫二創</div>
-                    <div class="k-tag">#熱門IP跨界</div>
-                    <div class="k-desc">復刻木刻版畫<br>古代爆款周邊</div>
-                </div>
-
-                <div class="knowledge-item">
-                    <div class="k-icon-wrapper">
-                        <svg class="k-icon" viewBox="0 0 24 24">
-                            <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
-                        </svg>
-                    </div>
-                    <div class="k-title">錦地開光</div>
-                    <div class="k-tag">#構圖巧思</div>
-                    <div class="k-desc">繁密底紋+圓窗<br>突出故事主題</div>
-                </div>
+            <div class="action-btn" onclick="alert('Exclusive Gift clicked!')">
+                <div class="btn-badge"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 59 16.17 3.83 12 12 12 3 7 3 2 3 2 5.03 2 7.5 3.5 10 2 12 2 12 2s1.97 0 4.5 1.5C18.97 2 21 2 21 2c0 5-5 9-9 10zm-5 6c-3.31 0-6 2.69-6 6h12c0-3.31-2.69-6-6-6z"/></svg></div>
+                <div class="btn-text">Exclusive Gift</div>
             </div>
         </div>
     </div>
 
+    <!-- MindAR 3D 場景 -->
+    <a-scene id="arScene" 
+             mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF: 0.0001; filterBeta: 0.001;" 
+             embedded
+             color-space="sRGB" 
+             renderer="colorManagement: true; transparent: true; alpha: true;" 
+             vr-mode-ui="enabled: false" 
+             device-orientation-permission-ui="enabled: false">
+        
+        <a-assets>
+            <img id="img1" src="1.png">
+            <img id="img2" src="2.png">
+            <img id="img3" src="3.png">
+            <img id="img4" src="4.png">
+            <img id="img5" src="5.png">
+            <img id="img6" src="6.png">
+            <img id="img7" src="7.png">
+            <img id="img9" src="9.png">
+            <img id="img10" src="10.png">
+            <img id="img11" src="11.png">
+            <img id="img12" src="12.png">
+            <img id="img13" src="13.png">
+            <img id="img14" src="14.png">
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <!-- 綁定識別目標 -->
+        <a-entity id="arTarget" mindar-image-target="targetIndex: 0">
+            
+            <!-- 【背景層 - Z: 0.00】 -->
+            <a-image src="#img7" position="0.02 -0.28 0.00" scale="2.07 1.16 1" rotation="0 0 0.77"></a-image>
+            <a-image src="#img10" position="-0.67 0.10 0.02" scale="1.04 0.58 1" rotation="0 0 2.55"></a-image>
+            <a-image src="#img11" position="0.88 0.47 0.02" scale="1.86 1.04 1" rotation="0 0 -11.45"></a-image>
+
+            <!-- 【中景底層 - Z: 0.15】 -->
+            <a-image src="#img4" position="-0.67 -0.31 0.15" scale="0.66 0.37 1" rotation="0 0 0.10"></a-image>
+            <a-image src="#img9" position="0.75 -0.28 0.15" scale="0.43 0.24 1" rotation="0 0 1.17"></a-image>
+
+            <!-- 【中景過渡與核心層 - Z: 0.30 ~ 0.35】 -->
+            <a-image src="#img2" position="-0.74 -0.59 0.30" scale="1.01 0.57 1" rotation="0 0 -10.70"></a-image>
+            <a-image src="#img5" position="0.57 -0.47 0.30" scale="0.62 0.35 1" rotation="0 0 0.45"></a-image>
+            <a-image src="#img3" position="-0.63 -0.82 0.35" scale="0.75 0.42 1" rotation="0 0 -11.34"></a-image>
+            <a-image src="#img6" position="0.57 -0.64 0.35" scale="0.78 0.44 1" rotation="0 0 2.36"></a-image>
+
+            <!-- 【前景核心與懸浮層 - Z: 0.55 ~ 0.85】 -->
+            <a-image src="#img12" position="-0.04 -1.13 0.55" scale="1.86 1.04 1" rotation="0 0 0.87"></a-image>
+            
+            <!-- 主包裝袋：帶輕微浮動 -->
+            <a-image src="#img1" position="-0.22 -0.62 0.65" scale="1.28 0.72 1" rotation="0 0 0.82"
+                     animation="property: position; to: -0.22 -0.59 0.68; dir: alternate; dur: 3000; loop: true; easing: easeInOutSine"></a-image>
+
+            <!-- 前景飛鳥：高 Z 軸立體視差漂浮 -->
+            <a-image src="#img13" position="0.75 1.24 0.80" scale="0.61 0.34 1" rotation="0 0 9.84"
+                     animation="property: position; to: 0.78 1.28 0.85; dir: alternate; dur: 2500; loop: true; easing: easeInOutQuad"></a-image>
+
+            <a-image src="#img14" position="-0.67 0.87 0.75" scale="0.50 0.28 1" rotation="0 0 -11.04"
+                     animation="property: position; to: -0.65 0.90 0.78; dir: alternate; dur: 2800; loop: true; easing: easeInOutQuad"></a-image>
+                     
+            <a-image src="#img14" position="-0.78 1.27 0.75" scale="0.55 0.31 1" rotation="0 0 -3.78"
+                     animation="property: position; to: -0.76 1.30 0.78; dir: alternate; dur: 3200; loop: true; easing: easeInOutQuad"></a-image>
+
+        </a-entity>
+    </a-scene>
+
     <script>
-        const targetEntity = document.querySelector('#ar-target');
-        const viewport = document.getElementById('viewport');
-        const titleGroup = document.getElementById('titleGroup');
-        const plateContainer = document.getElementById('plateContainer');
-        const infoCard = document.getElementById('infoCard');
-        const hotspot1 = document.getElementById('hotspot1');
-        const popoverCard = document.getElementById('popoverCard');
-        const popoverClose = document.getElementById('popoverClose');
+        const arScene = document.getElementById("arScene");
+        const uiContainer = document.getElementById("uiContainer");
+        const scanOverlay = document.getElementById("scanOverlay");
 
-        let hotspotTimer = null;
+        // 等待 MindAR 完全就緒後再綁定 targetFound/targetLost
+        arScene.addEventListener("arReady", () => {
+            console.log("🟢 MindAR 初始化完成，開始監聽識別...");
+            const arTarget = document.getElementById("arTarget");
 
-        // AR 識別成功：展開初始 UI
-        targetEntity.addEventListener("targetFound", () => {
-            console.log("🎯 識別成功！展現 2.html 新版效果");
-            titleGroup.classList.add('show');
-            plateContainer.classList.add('show');
+            arTarget.addEventListener("targetFound", () => {
+                console.log("🎯 成功識別到標籤！");
+                uiContainer.classList.add("visible");
+                scanOverlay.classList.add("hidden");
+            });
+
+            arTarget.addEventListener("targetLost", () => {
+                console.log("❌ 標籤離開畫面");
+                uiContainer.classList.remove("visible");
+                scanOverlay.classList.remove("hidden");
+            });
         });
 
-        // AR 識別丟失：重置 UI 狀態
-        targetEntity.addEventListener("targetLost", () => {
-            console.log("❌ 失去識別，重置 UI");
-            resetUI();
+        arScene.addEventListener("arError", (err) => {
+            console.error("🔴 MindAR 初始化錯誤:", err);
         });
-
-        // 熱點點擊觸發彈窗
-        hotspot1.addEventListener('click', (e) => {
-            e.stopPropagation();
-            playClickSound();
-            popoverCard.classList.toggle('active');
-        });
-
-        popoverClose.addEventListener('click', (e) => {
-            e.stopPropagation();
-            popoverCard.classList.remove('active');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!popoverCard.contains(e.target) && e.target !== hotspot1) {
-                popoverCard.classList.remove('active');
-            }
-        });
-
-        // 點擊「探索古瓷密碼」
-        function handleStartExplore() {
-            playClickSound();
-
-            viewport.classList.add('active-mode');
-            titleGroup.classList.remove('show');
-            titleGroup.classList.add('hidden');
-
-            // 1. 下方知識卡片登場
-            setTimeout(() => {
-                infoCard.classList.add('active');
-            }, 100);
-
-            // 2. 延遲 3 秒後亮起「卍字錦」熱點標註
-            clearTimeout(hotspotTimer);
-            hotspotTimer = setTimeout(() => {
-                hotspot1.classList.add('visible');
-            }, 3000);
-        }
-
-        // 重置所有 UI 狀態
-        function resetUI() {
-            clearTimeout(hotspotTimer);
-            hotspot1.classList.remove('visible');
-            popoverCard.classList.remove('active');
-            infoCard.classList.remove('active');
-            viewport.classList.remove('active-mode');
-            titleGroup.classList.remove('hidden');
-            titleGroup.classList.remove('show');
-            plateContainer.classList.remove('show');
-        }
-
-        // Web Audio API 按鍵音效
-        function playClickSound() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(1200, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.08);
-                
-                gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
-                
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                
-                osc.start();
-                osc.stop(ctx.currentTime + 0.08);
-            } catch (e) {}
-        }
     </script>
 </body>
 </html>
