@@ -95,9 +95,9 @@
             animation: pop1Anim 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
         @keyframes pop1Anim {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
-            60% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-            100% { opacity: 1; transform: translate(-50%, -50%) rotate(0.87deg) scale(1); }
+            0% { opacity: 0; transform: translate(calc(-50% + 22px), calc(-50% + 22px)) scale(2); }
+            60% { opacity: 1; transform: translate(calc(-50% + 22px), calc(-50% + 22px)) scale(1.1); }
+            100% { opacity: 1; transform: translate(calc(-50% + 22px), calc(-50% + 22px)) rotate(0.87deg) scale(1); }
         }
 
         /* 頂部標題（兩行獨立打字機） */
@@ -520,10 +520,28 @@
             }
         };
 
+        // === 擴大圖片點擊熱區（不改變視覺位置與大小） ===
+        // 加透明邊框讓每邊多出 22px 可點區域，同時修正 translate 偏移
+        const HITBOX_PADDING = 22;
+        document.querySelectorAll('.placed-image').forEach(img => {
+            img.style.border = `${HITBOX_PADDING}px solid transparent`;
+            const t = img.style.transform;
+            if (t && t.includes('translate(-50%, -50%)')) {
+                img.style.transform = t.replace(
+                    'translate(-50%, -50%)',
+                    `translate(calc(-50% + ${HITBOX_PADDING}px), calc(-50% + ${HITBOX_PADDING}px))`
+                );
+            }
+        });
+
         // 為每張 PNG 綁定點擊彈窗
         document.querySelectorAll('.placed-image').forEach(img => {
             img.addEventListener('click', (e) => {
                 e.stopPropagation();
+                // 短暫金色高亮回饋，讓玩家確認點到了哪張
+                const origFilter = img.style.filter;
+                img.style.filter = 'drop-shadow(0px 0px 28px rgba(255, 215, 0, 1)) brightness(1.25)';
+                setTimeout(() => { img.style.filter = origFilter; }, 280);
                 const id = img.id;
                 if (imageInfo[id]) openModal(imageInfo[id]);
             });
