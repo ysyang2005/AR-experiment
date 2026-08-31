@@ -6,6 +6,7 @@
     <title>Timor Leste Kopi Luwak AR</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Serif+TC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -165,16 +166,82 @@
         .btn-badge svg { width: 14px; height: 14px; fill: #f5e2b3; }
         .btn-text { font-size: 2.3vw; font-weight: bold; color: #3b1d06; white-space: nowrap; }
 
-        .info-modal {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
-            width: 85%; background: rgba(20, 15, 10, 0.95);
-            border: 2px solid #d4af37; border-radius: 16px; padding: 20px;
-            color: #f7e6c4; z-index: 100; opacity: 0; pointer-events: none;
-            transition: all 0.3s ease; text-align: center;
+        /* 圖片點擊回饋 */
+        .placed-image {
+            cursor: pointer;
+            transition: filter 0.2s ease;
         }
-        .info-modal.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
-        .info-modal h3 { color: #ffd700; font-size: 20px; margin-bottom: 10px; }
-        .close-modal-btn { margin-top: 15px; background: #c43216; color: #fff; border: none; padding: 6px 20px; border-radius: 20px; cursor: pointer; }
+        .placed-image:active {
+            filter: drop-shadow(0px 0px 18px rgba(255, 215, 0, 0.95)) brightness(1.15);
+        }
+
+        /* === 資訊彈窗（金色復古風） === */
+        .info-modal {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.82);
+            width: 86%; max-width: 380px; max-height: 76vh;
+            overflow-y: auto;
+            background: linear-gradient(180deg, #fffef2 0%, #f7e6c4 50%, #eed9a8 100%);
+            border: 2px solid #d4af37;
+            border-radius: 18px;
+            box-shadow: 0 0 0 1px #8c681e, 0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(212,175,55,0.35), inset 0 1px 2px #ffffff;
+            padding: 26px 22px 22px;
+            color: #3b1d06;
+            z-index: 100; opacity: 0; pointer-events: none;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            text-align: center;
+        }
+        .info-modal.active {
+            opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto;
+        }
+        .modal-ornament {
+            width: 50px; height: 3px;
+            margin: 0 auto 14px;
+            background: linear-gradient(90deg, transparent, #d4af37, transparent);
+            border-radius: 2px;
+        }
+        .info-modal h3 {
+            font-family: 'Playfair Display', 'Noto Serif TC', serif;
+            font-size: 20px; font-weight: 900; line-height: 1.35;
+            background: linear-gradient(180deg, #7a1204 0%, #c43216 55%, #8c681e 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+        .modal-subtitle {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 13px; font-style: italic;
+            color: #8c681e; letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        .modal-divider {
+            width: 75%; height: 1px;
+            margin: 0 auto 14px;
+            background: linear-gradient(90deg, transparent, #d4af37, transparent);
+        }
+        .info-modal #modalContent {
+            font-family: 'Noto Serif TC', 'Cormorant Garamond', serif;
+            font-size: 14px; line-height: 1.9;
+            color: #3b1d06; text-align: justify;
+            font-weight: 400;
+        }
+        .close-modal-btn {
+            margin-top: 16px;
+            background: radial-gradient(circle, #1a4d2e 0%, #0d2b19 100%);
+            color: #f5e2b3;
+            border: 1.5px solid #f3d085;
+            padding: 8px 30px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Noto Serif TC', serif;
+            font-size: 14px; font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .close-modal-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
 
         @media (min-width: 500px) {
             .title-line { font-size: 38px; }
@@ -237,7 +304,10 @@
             </div>
 
             <div class="info-modal" id="infoModal">
+                <div class="modal-ornament"></div>
                 <h3 id="modalTitle">Title</h3>
+                <p class="modal-subtitle" id="modalSubtitle"></p>
+                <div class="modal-divider"></div>
                 <p id="modalContent">Description...</p>
                 <button class="close-modal-btn" onclick="closeModal()">關閉</button>
             </div>
@@ -346,24 +416,116 @@
             closeModal();
         });
 
-        // 彈窗邏輯
-        const modalData = {
-            flavor: { title: "FLAVOR PROFILE", text: "Rich dark chocolate notes paired with subtle wild berry acidity." },
-            origin: { title: "ORIGIN STORY", text: "Hand-harvested in the high-altitude volcanic regions of Timor-Leste." },
-            gift: { title: "EXCLUSIVE GIFT", text: "Show this AR screen at our partner store to claim your sample." }
-        };
+        // === 統一彈窗控制 ===
+        function openModal(data) {
+            document.getElementById('modalTitle').innerText = data.title;
+            const subtitleEl = document.getElementById('modalSubtitle');
+            if (data.subtitle) {
+                subtitleEl.innerText = data.subtitle;
+                subtitleEl.style.display = 'block';
+            } else {
+                subtitleEl.style.display = 'none';
+            }
+            document.getElementById('modalContent').innerText = data.text;
+            document.getElementById('infoModal').classList.add('active');
+        }
+        function closeModal() { document.getElementById('infoModal').classList.remove('active'); }
 
+        // 底部按鈕資訊
+        const modalData = {
+            flavor: { title: "風味檔案", subtitle: "Flavor Profile", text: "東帝汶咖啡以低酸、醇厚著稱，入口是黑巧克力與焦糖的甜感，中段帶出杏仁與堅果的香氣，尾韻留有淡淡香料與草本氣息。傳統日曬處理賦予它飽滿的果甜與圓潤口感。" },
+            origin: { title: "產地故事", subtitle: "Origin Story", text: "東帝汶位於努沙登加拉群島，咖啡自葡萄牙殖民時期傳入，如今多由小農在海拔1000至1500米的高地以有機方式種植。咖啡是該國最大非石油出口產品，支撐約四分之一人口的生計。" },
+            gift: { title: "專屬禮遇", subtitle: "Exclusive Gift", text: "出示此 AR 畫面至合作門店，即可兌換東帝汶貓屎咖啡試飲包一份，數量有限，送完為止。" }
+        };
         document.querySelectorAll('.action-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const key = btn.getAttribute('data-info');
-                if (modalData[key]) {
-                    document.getElementById('modalTitle').innerText = modalData[key].title;
-                    document.getElementById('modalContent').innerText = modalData[key].text;
-                    document.getElementById('infoModal').classList.add('active');
-                }
+                if (modalData[key]) openModal(modalData[key]);
             });
         });
-        function closeModal() { document.getElementById('infoModal').classList.remove('active'); }
+
+        // === 每張 PNG 與東帝汶的關係介紹 ===
+        const imageInfo = {
+            'img-1': {
+                title: "麝香猫 · Kopi Luwak 之魂",
+                subtitle: "The Asian Palm Civet",
+                text: "東帝汶熱帶雨林中棲息著野生麝香貓（Paradoxurus hermaphroditus）。牠們晝伏夜出，專挑最成熟甜美的咖啡果吞食。咖啡豆在其消化道內經天然酶發酵，蛋白質分解，產生獨特的醇厚與低酸風味——這就是舉世聞名的貓屎咖啡（Kopi Luwak）。東帝汶的 Luwak 咖啡多為野生採集，產量極稀少，是咖啡世界的傳奇珍品。"
+            },
+            'img-2': {
+                title: "咖啡櫻桃 · 紅色黃金",
+                subtitle: "Coffee Cherry",
+                text: "東帝汶咖啡果每年5至9月成熟，由青轉紅，農民以手工逐顆採摘最飽滿的果實。咖啡果肉的甜度直接影響咖啡豆的風味。東帝汶海拔1000至1500米的涼爽高地讓果實緩慢成熟，積累更豐富的糖分與香氣物質，造就了東帝汶咖啡醇厚飽滿的酒體與天然甜感。"
+            },
+            'img-3': {
+                title: "烘焙豆 · 風味密碼",
+                subtitle: "Roasted Beans",
+                text: "東帝汶咖啡豆以阿拉比卡為主，烘焙後呈深棕色澤，帶有典型的低酸與醇厚酒體，風味譜包含黑巧克力、焦糖、堅果與淡淡香料氣息。由於多採用傳統日曬處理，豆子保留了更多果實的甜感與複雜層次，是東帝汶咖啡最具辨識度的標誌。"
+            },
+            'img-4': {
+                title: "非洲曬床 · 日曬傳承",
+                subtitle: "African Drying Bed",
+                text: "東帝汶咖啡以傳統日曬處理法（Natural Process）為主。採摘後的咖啡果均勻鋪在這種木製網架（African Bed）上，在熱帶陽光下晾曬2至3週，期間需不斷翻動以保證乾燥均勻。此法賦予東帝汶咖啡濃郁果香與醇厚口感，是當地世代相傳的精緻工藝。"
+            },
+            'img-5': {
+                title: "陶壺煮咖啡 · 大地溫度",
+                subtitle: "Clay Pot Coffee",
+                text: "在東帝汶鄉村，傳統上用陶土壺慢煮咖啡是日常生活的一部分。陶土的微孔結構讓咖啡在慢煮中均勻受熱，釋放出更圓潤的口感。這種源自葡萄牙殖民時期與本土文化交融的飲用方式，承載著東帝汶人對咖啡的日常情感，也是社區聚會時的溫暖儀式。"
+            },
+            'img-6': {
+                title: "風味譜系 · 舌尖東帝汶",
+                subtitle: "Flavor Notes",
+                text: "東帝汶咖啡的風味常被描述為杏仁、黑巧克力與焦糖的交織。低酸度與醇厚酒體是其標誌，尾韻帶有淡淡香料與草本氣息。這些風味來自高海拔種植、傳統日曬處理以及東帝汶獨特的火山土壤，每一口都是熱帶島國自然條件的濃縮。"
+            },
+            'img-7': {
+                title: "高地咖啡園 · 雲霧財富",
+                subtitle: "Highland Plantation",
+                text: "東帝汶多山，咖啡多種植在海拔1000至1500米的高地，如Ermera、Ainaro、Manufahi等產區。熱帶陽光與山地雲霧交替，咖啡樹在遮蔭樹下緩慢生長。咖啡是東帝汶最大的非石油出口產品，支撐著全國約四分之一人口的生計，是山區農民最重要的經濟來源。"
+            },
+            'img-9': {
+                title: "雞蛋花 · 熱帶氣息",
+                subtitle: "Plumeria",
+                text: "雞蛋花（Plumeria）是東帝汶常見的熱帶花卉，在咖啡種植園的遮蔭樹與村落中隨處可見。它的芬芳是東南亞熱帶景觀的標誌，也象徵著東帝汶溫暖濕潤的氣候——正是這種年均溫25至28度、降雨充沛的氣候，孕育了優質的咖啡果實。"
+            },
+            'img-10': {
+                title: "棕櫚葉 · 島國剪影",
+                subtitle: "Palm Frond",
+                text: "東帝汶位於努沙登加拉群島，熱帶氣候讓棕櫚遍布海岸與低地。棕櫚葉不僅是島國風光的象徵，傳統中也用於編織與包裹食物。金色的棕櫚剪影呼應著咖啡園日落時分的金色陽光，也代表東帝汶咖啡從種植到出口的熱帶旅程。"
+            },
+            'img-11': {
+                title: "棕櫚樹 · 熱帶守望者",
+                subtitle: "Palm Tree",
+                text: "東帝汶的海岸與低地遍布棕櫚樹，與高地咖啡園形成垂直分布的生態景觀。棕櫚樹為咖啡種植園提供部分遮蔭，其木材與果實也是當地社區的重要資源。金色棕櫚象徵著東帝汶咖啡從土地到世界的金色旅程，以及這座年輕島國的熱帶生命力。"
+            },
+            'img-12': {
+                title: "東帝汶貓屎咖啡 · 國之驕傲",
+                subtitle: "East Timor Civet Coffee",
+                text: "East Timor Civet Coffee 是東帝汶最具代表性的高端咖啡產品。以野生麝香貓自然採食、消化發酵的咖啡豆為原料，產量極為有限。每一杯都承載著東帝汶熱帶雨林的生態智慧與農民的精心採集，是這座年輕國家送給世界的珍貴禮物。"
+            },
+            'img-13': {
+                title: "金色飛鳥 · 咖啡花傳粉者",
+                subtitle: "The Pollinator",
+                text: "在東帝汶咖啡園中，太陽鳥（Sunbird）等小型鳥類是咖啡花的重要傳粉者。牠們在白色咖啡花叢間穿梭，幫助咖啡樹結出飽滿的果實。金色飛鳥象徵著東帝汶咖啡生態系統中生命的循環與自然的饋贈，也提醒人們每一粒咖啡豆都離不開健康的棲息地。"
+            },
+            'img-14-1': {
+                title: "金色飛鳥 · 咖啡花傳粉者",
+                subtitle: "The Pollinator",
+                text: "在東帝汶咖啡園中，太陽鳥（Sunbird）等小型鳥類是咖啡花的重要傳粉者。牠們在白色咖啡花叢間穿梭，幫助咖啡樹結出飽滿的果實。金色飛鳥象徵著東帝汶咖啡生態系統中生命的循環與自然的饋贈，也提醒人們每一粒咖啡豆都離不開健康的棲息地。"
+            },
+            'img-14-2': {
+                title: "金色飛鳥 · 咖啡花傳粉者",
+                subtitle: "The Pollinator",
+                text: "在東帝汶咖啡園中，太陽鳥（Sunbird）等小型鳥類是咖啡花的重要傳粉者。牠們在白色咖啡花叢間穿梭，幫助咖啡樹結出飽滿的果實。金色飛鳥象徵著東帝汶咖啡生態系統中生命的循環與自然的饋贈，也提醒人們每一粒咖啡豆都離不開健康的棲息地。"
+            }
+        };
+
+        // 為每張 PNG 綁定點擊彈窗
+        document.querySelectorAll('.placed-image').forEach(img => {
+            img.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = img.id;
+                if (imageInfo[id]) openModal(imageInfo[id]);
+            });
+        });
 
         // 金色粒子
         const canvas = document.getElementById('particleCanvas');
