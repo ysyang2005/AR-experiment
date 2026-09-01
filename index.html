@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta charset="UTF-8">
@@ -256,7 +256,7 @@
 
     <!-- 點擊開始遮罩 (僅解鎖瀏覽器音訊與鏡頭) -->
     <div id="audio-overlay">
-        <div class="overlay-btn">✨ 點擊螢幕開啟體驗 ✨</div>
+        <div class="overlay-btn">✨ Tap to Begin the Experience ✨</div>
     </div>
 
     <!-- UI 圖層內容 (未識別前不顯示) -->
@@ -312,7 +312,7 @@
                 <p class="modal-subtitle" id="modalSubtitle"></p>
                 <div class="modal-divider"></div>
                 <p id="modalContent">Description...</p>
-                <button class="close-modal-btn" onclick="closeModal()">關閉</button>
+                <button class="close-modal-btn" onclick="closeModal()">Close</button>
             </div>
         </div>
     </div>
@@ -434,11 +434,11 @@
         }
         function closeModal() { document.getElementById('infoModal').classList.remove('active'); }
 
-        // 底部按鈕資訊
+        // Bottom button info
         const modalData = {
-            flavor: { title: "烘焙手札", subtitle: "Flavor Profile", text: "【風味】黑巧克力的沉穩、焦糖的溫柔，尾韻裡杏仁與香料緩緩迴旋，低酸而醇厚，是山與海寫在舌尖的長信。\n【烘焙時間】建議中深焙，一爆結束後發展2至3分鐘下豆，總烘焙時長約12至14分鐘。\n【烘焙方法】日曬豆適合 Full City 至維也納烘焙度，既保留熱帶果甜，又釋放巧克力與堅果的厚實香氣。" },
-            origin: { title: "產地故事", subtitle: "Origin Story", text: "在亞洲最年輕的國度，咖啡樹長在雲霧繚繞的高地上。這裡的麝香貓完全野生，夜間自由穿梭於雨林，揀選最甜的咖啡果——不囚禁、不虐待，是聯合國相關機構唯一支持的野生貓屎咖啡項目。每一杯，都是動物福利與極致風味的雙重承諾。" },
-            gift: { title: "專屬禮遇", subtitle: "Exclusive Gift", text: "出示此畫面，可兌換東帝汶咖啡豆手串一份——每顆豆子都經過雨林與時光的洗禮。\n你知道嗎？東帝汶最早的咖啡，始於1815年——澳門雅廉訪以澳門資金聘請巴西農學家，將咖啡種子帶到帝汶的土地。\n一段從澳門出發的海上冒險，就此展開。敬請期待「澳門冒險」遊戲，追尋這杯咖啡跨越兩百年的旅程。" }
+            flavor: { title: "Roasting Notes", subtitle: "Flavor Profile", text: "【Flavor】Dark chocolate's depth, caramel's tenderness, with almond and spice slowly circling in the finish — low acidity, full body, a long letter from mountain and sea written on the tongue.\n【Roast Time】Medium-dark roast recommended. Drop 2–3 minutes after first crack ends. Total roast time approximately 12–14 minutes.\n【Roast Method】Natural-processed beans shine at Full City to Vienna roast — preserving tropical fruit sweetness while unlocking the rich aroma of chocolate and nuts." },
+            origin: { title: "Origin Story", subtitle: "Origin Story", text: "In Asia's youngest nation, coffee trees grow on mist-wreathed highlands. Here the civet lives entirely wild, roaming the rainforest freely at night, selecting only the sweetest cherries — never caged, never mistreated. This is the only wild civet coffee program supported by United Nations agencies. Every cup is a dual promise of animal welfare and extraordinary flavor." },
+            gift: { title: "Exclusive Gift", subtitle: "Exclusive Gift", text: "Show this screen to redeem a Timor-Leste coffee bean bracelet — each bean baptized by rainforest and time.\nDid you know? Timor-Leste's first coffee began in 1815, when Miguel Arriaga Brum da Silveira of Macau used Macau capital to hire a Brazilian agronomist and bring coffee seeds to Timor's soil.\nA maritime adventure that set sail from Macau begins here. Stay tuned for the \"Macau Adventure\" game — tracing this coffee's two-hundred-year journey." }
         };
         document.querySelectorAll('.action-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -447,77 +447,77 @@
             });
         });
 
-        // === 每張 PNG 與東帝汶的關係介紹 ===
+        // === Each PNG's relationship with Timor-Leste ===
         const imageInfo = {
             'img-1': {
-                title: "麝香猫 · Kopi Luwak 之魂",
+                title: "The Civet · Soul of Kopi Luwak",
                 subtitle: "The Asian Palm Civet",
-                text: "在東帝汶的雨林深處，麝香貓是夜色裡的品味家。牠們揀選最飽滿的咖啡果，讓豆實在體內經歷一場溫柔的發酵。於是一杯 Kopi Luwak，便有了大地與時光的雙重印記——稀有的，從來不是豆子，而是一隻動物走過的那個夜晚。"
+                text: "In the deep rainforests of Timor-Leste, the civet is a connoisseur of the night. It selects only the ripest cherries, letting the beans undergo a gentle fermentation within. Thus a cup of Kopi Luwak bears the dual imprint of earth and time — what is rare is never the bean, but the night an animal walked through."
             },
             'img-2': {
-                title: "咖啡櫻桃 · 紅色黃金",
+                title: "Coffee Cherry · Red Gold",
                 subtitle: "Coffee Cherry",
-                text: "山風吹過的季節，咖啡櫻桃由青轉紅，像一串一串掛在枝頭的小燈籠。農人的指尖輕輕摘下最紅的那一顆——那是高地雲霧醞釀了一整年的甜，也是東帝汶山區最珍貴的紅。"
+                text: "In the season when mountain winds blow, coffee cherries turn from green to red, like little lanterns strung along the branches. The farmer's fingertips gently pluck the reddest one — that is the sweetness brewed by highland mist for a whole year, and the most precious red in Timor-Leste's mountains."
             },
             'img-3': {
-                title: "烘焙豆 · 風味密碼",
+                title: "Roasted Beans · The Flavor Code",
                 subtitle: "Roasted Beans",
-                text: "當豆實遇見火焰，山林的記憶被喚醒——黑巧克力的沉穩、焦糖的溫暖、堅果的低語，都在這一顆深棕色的小宇宙裡緩緩綻放。低酸是它的留白，醇厚是它的韻腳。"
+                text: "When beans meet flame, the memory of mountains and forests awakens — dark chocolate's composure, caramel's warmth, nuts' whispers, all slowly blooming within this deep brown little universe. Low acidity is its blank space; full body is its rhyme."
             },
             'img-4': {
-                title: "非洲曬床 · 日曬傳承",
+                title: "African Drying Bed · Sun-Dried Heritage",
                 subtitle: "African Drying Bed",
-                text: "木架上鋪滿了紅色的果實，熱帶的陽光一日日走過，風一日日走過。農人用掌心翻動，像在撫摸一串正在變甜的時光。兩到三週之後，果實的香氣被牢牢鎖進每一顆豆裡。"
+                text: "Wooden frames are covered with red cherries. Tropical sun passes day by day, wind passes day by day. The farmer turns them with palms, as if stroking a string of time growing sweet. After two to three weeks, the fruit's aroma is locked firmly into every bean."
             },
             'img-5': {
-                title: "陶壺煮咖啡 · 大地溫度",
+                title: "Clay Pot Coffee · Earth's Warmth",
                 subtitle: "Clay Pot Coffee",
-                text: "陶土壺裡的咖啡緩緩沸騰，像一場遲來的對話。泥土的孔隙吸走了焦躁，只留下圓潤與溫暖。這是東帝汶人招待遠方客人的方式——慢一點，再慢一點，讓味道有時間走進心裡。"
+                text: "Coffee in the clay pot slowly boils, like a long-overdue conversation. The pores of the earth absorb restlessness, leaving only roundness and warmth. This is how Timorese welcome distant guests — slower, slower still, letting flavor have time to walk into the heart."
             },
             'img-6': {
-                title: "風味譜系 · 舌尖東帝汶",
+                title: "Flavor Spectrum · Timor on the Tongue",
                 subtitle: "Flavor Notes",
-                text: "杏仁的輕語、黑巧克力的深情、焦糖的迴響，在舌尖上排成一首慢詩。它們來自高海拔的霧、來自日曬床上的風、來自火山土壤裡沉睡的礦物——每一口，都是這座島國自然條件的濃縮。"
+                text: "Almond's whisper, dark chocolate's devotion, caramel's echo — arranged into a slow poem on the tongue. They come from high-altitude mist, from wind on drying beds, from minerals sleeping in volcanic soil — every sip is a distillation of this island nation's natural conditions."
             },
             'img-7': {
-                title: "高地咖啡園 · 雲霧財富",
+                title: "Highland Plantation · Wealth in the Mist",
                 subtitle: "Highland Plantation",
-                text: "雲霧在梯田間流動，咖啡樹在遮蔭下慢慢生長。這裡的時間走得慢，所以每一顆果實都藏得深。Ermera 的坡、Ainaro 的霧、Manufahi的露——山的高度，最後都變成了杯中的厚度。"
+                text: "Mist flows between terraces; coffee trees grow slowly under shade. Time moves slowly here, so every cherry hides deep. Ermera's slopes, Ainaro's fog, Manufahi's dew — the mountain's height, in the end, becomes the thickness in the cup."
             },
             'img-9': {
-                title: "雞蛋花 · 熱帶氣息",
+                title: "Plumeria · Tropical Breath",
                 subtitle: "Plumeria",
-                text: "雞蛋花在晨露中張開五瓣，香氣像一聲輕輕的嘆息。它長在咖啡園邊，長在村落口，見證著這座島國用溫暖與濕潤養育每一粒咖啡。花開的時候，咖啡果也紅了。"
+                text: "Plumeria opens its five petals in morning dew, its fragrance like a soft sigh. It grows at the edge of coffee gardens, at village entrances, witnessing how this island nation nurtures every coffee bean with warmth and moisture. When the flowers bloom, the cherries turn red too."
             },
             'img-10': {
-                title: "棕櫚葉 · 島國剪影",
+                title: "Palm Frond · Island Silhouette",
                 subtitle: "Palm Frond",
-                text: "棕櫚葉在海風中搖曳，把金色的夕陽剪成碎片。它編進籃子，包進食物，也編進了東帝汶人與這片熱帶土地共生的日常。每一道葉脈，都是島嶼寫給大海的詩行。"
+                text: "Palm fronds sway in the sea breeze, cutting the golden sunset into fragments. They are woven into baskets, wrapped around food, and woven into the daily coexistence of Timorese people and this tropical land. Every vein is a line of poetry the island writes to the sea."
             },
             'img-11': {
-                title: "棕櫚樹 · 熱帶守望者",
+                title: "Palm Tree · Tropical Guardian",
                 subtitle: "Palm Tree",
-                text: "棕櫚樹站在海岸，也站在咖啡園的邊緣。它的影子落在咖啡樹上，像一位沉默的長輩，為年輕的豆實擋住過烈的陽光。從海岸到山頂，棕櫚與咖啡，共同畫出了東帝汶的垂直風景。"
+                text: "Palm trees stand on the coast, and at the edge of coffee gardens. Their shadows fall on coffee trees, like a silent elder shielding young beans from too fierce a sun. From coast to summit, palm and coffee together paint Timor-Leste's vertical landscape."
             },
             'img-12': {
-                title: "東帝汶貓屎咖啡 · 國之驕傲",
+                title: "East Timor Civet Coffee · National Pride",
                 subtitle: "East Timor Civet Coffee",
-                text: "一條緞帶，繫住了雨林的夜、晨間的露、和農人彎腰的背影。East Timor Civet Coffee——這不只是一個名字，是一座年輕島國送給世界的金色情書，每一杯都寫著：我來自這裡。"
+                text: "A ribbon ties together the rainforest's night, the morning dew, and the farmer's bending back. East Timor Civet Coffee — this is not just a name, but a golden love letter a young island nation sends to the world. Every cup writes: I come from here."
             },
             'img-13': {
-                title: "金色飛鳥 · 咖啡花傳粉者",
+                title: "Golden Bird · Pollinator of Coffee Blossoms",
                 subtitle: "The Pollinator",
-                text: "金色的小鳥掠過咖啡花叢，翅膀帶動一縷幽香。它是咖啡園的信使，把花的問候帶給果實，把山的問候帶給遠方的杯。沒有牠們的穿梭，就沒有枝頭那一顆顆飽滿的紅。"
+                text: "A golden bird skims over coffee blossoms, its wings stirring a wisp of fragrance. It is the messenger of the coffee garden, carrying the flower's greetings to the fruit, the mountain's greetings to distant cups. Without their flitting back and forth, there would be no plump red cherries on the branches."
             },
             'img-14-1': {
-                title: "金色飛鳥 · 咖啡花傳粉者",
+                title: "Golden Bird · Pollinator of Coffee Blossoms",
                 subtitle: "The Pollinator",
-                text: "金色的小鳥掠過咖啡花叢，翅膀帶動一縷幽香。它是咖啡園的信使，把花的問候帶給果實，把山的問候帶給遠方的杯。沒有牠們的穿梭，就沒有枝頭那一顆顆飽滿的紅。"
+                text: "A golden bird skims over coffee blossoms, its wings stirring a wisp of fragrance. It is the messenger of the coffee garden, carrying the flower's greetings to the fruit, the mountain's greetings to distant cups. Without their flitting back and forth, there would be no plump red cherries on the branches."
             },
             'img-14-2': {
-                title: "金色飛鳥 · 咖啡花傳粉者",
+                title: "Golden Bird · Pollinator of Coffee Blossoms",
                 subtitle: "The Pollinator",
-                text: "金色的小鳥掠過咖啡花叢，翅膀帶動一縷幽香。它是咖啡園的信使，把花的問候帶給果實，把山的問候帶給遠方的杯。沒有牠們的穿梭，就沒有枝頭那一顆顆飽滿的紅。"
+                text: "A golden bird skims over coffee blossoms, its wings stirring a wisp of fragrance. It is the messenger of the coffee garden, carrying the flower's greetings to the fruit, the mountain's greetings to distant cups. Without their flitting back and forth, there would be no plump red cherries on the branches."
             }
         };
 
