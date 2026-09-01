@@ -226,6 +226,7 @@
             font-size: 14px; line-height: 1.9;
             color: #3b1d06; text-align: justify;
             font-weight: 400;
+            white-space: pre-line;
         }
         .close-modal-btn {
             margin-top: 16px;
@@ -435,9 +436,9 @@
 
         // 底部按鈕資訊
         const modalData = {
-            flavor: { title: "風味檔案", subtitle: "Flavor Profile", text: "第一口是黑巧克力的低語，第二口是焦糖的溫柔，尾韻裡有杏仁與香料在緩緩迴旋。低酸是它留給你的空白，醇厚是它寫給你的長信——每一口，都是山與海的對話。" },
-            origin: { title: "產地故事", subtitle: "Origin Story", text: "在亞洲最年輕的國度，咖啡樹長在雲霧繚繞的高地上。葡萄牙人帶來了種子，東帝汶人用雙手與時光把它養成了山的形狀。這是一杯有國籍的咖啡，也是一群人安身立命的根。" },
-            gift: { title: "專屬禮遇", subtitle: "Exclusive Gift", text: "把這片金色的畫面帶到合作門店，換取一份來自東帝汶雨林的試飲。數量有限，但每一顆豆子都承載著晨露、夕陽，和一隻麝香貓走過的夜晚。" }
+            flavor: { title: "烘焙手札", subtitle: "Flavor Profile", text: "【風味】黑巧克力的沉穩、焦糖的溫柔，尾韻裡杏仁與香料緩緩迴旋，低酸而醇厚，是山與海寫在舌尖的長信。\n【烘焙時間】建議中深焙，一爆結束後發展2至3分鐘下豆，總烘焙時長約12至14分鐘。\n【烘焙方法】日曬豆適合 Full City 至維也納烘焙度，既保留熱帶果甜，又釋放巧克力與堅果的厚實香氣。" },
+            origin: { title: "產地故事", subtitle: "Origin Story", text: "在亞洲最年輕的國度，咖啡樹長在雲霧繚繞的高地上。這裡的麝香貓完全野生，夜間自由穿梭於雨林，揀選最甜的咖啡果——不囚禁、不虐待，是聯合國相關機構唯一支持的野生貓屎咖啡項目。每一杯，都是動物福利與極致風味的雙重承諾。" },
+            gift: { title: "專屬禮遇", subtitle: "Exclusive Gift", text: "出示此畫面，可兌換東帝汶咖啡豆手串一份——每顆豆子都經過雨林與時光的洗禮。\n你知道嗎？東帝汶最早的咖啡，始於1815年——澳門雅廉訪以澳門資金聘請巴西農學家，將咖啡種子帶到帝汶的土地。\n一段從澳門出發的海上冒險，就此展開。敬請期待「澳門冒險」遊戲，追尋這杯咖啡跨越兩百年的旅程。" }
         };
         document.querySelectorAll('.action-btn').forEach(btn => {
             btn.addEventListener('click', () => {
